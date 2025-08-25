@@ -39,30 +39,72 @@ export default function Scanning() {
     setError("");
 
     try {
-      const response = await fetch(
-        "http://localhost:8080/api/v1/kubeconfigs/jesus/status",
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // Get valid kubeconfigs from localStorage
+      const storedKubeconfigs = localStorage.getItem("kubeconfigs");
+      if (!storedKubeconfigs) {
+        setError("No kubeconfig files found. Please upload a kubeconfig first.");
+        setIsLoading(false);
+        return;
       }
 
-      const data = await response.json();
-      setVulnerabilityData(data);
-      setLastUpdated(new Date());
+      const kubeconfigs: KubeconfigEntry[] = JSON.parse(storedKubeconfigs);
+      const validConfigs = kubeconfigs.filter((k) => k.status === "valid");
 
-      // Initialize scan statuses for each cluster if not already present
+      if (validConfigs.length === 0) {
+        setError("No valid kubeconfig files found. Please upload a valid kubeconfig.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Fetch data from all valid kubeconfigs
+      const allClusterStatuses: ClusterVulnerabilityStatus[] = [];
       const newScanStatuses = new Map(scanStatuses);
-      data.clusterStatuses.forEach((cluster: ClusterVulnerabilityStatus) => {
-        if (!newScanStatuses.has(cluster.name)) {
-          newScanStatuses.set(cluster.name, {
-            contextName: cluster.name,
-            isScanning: false,
-            lastScanned: null,
-          });
+      let hasValidData = false;
+
+      for (const config of validConfigs) {
+        try {
+          const response = await fetch(
+            `http://localhost:8080/api/v1/kubeconfigs/${config.name}/status`,
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.valid && data.clusterStatuses) {
+              allClusterStatuses.push(...data.clusterStatuses);
+              hasValidData = true;
+
+              // Initialize scan statuses for each cluster
+              data.clusterStatuses.forEach((cluster: ClusterVulnerabilityStatus) => {
+                const statusKey = `${config.name}-${cluster.name}`;
+                if (!newScanStatuses.has(statusKey)) {
+                  newScanStatuses.set(statusKey, {
+                    contextName: cluster.name,
+                    kubeconfigName: config.name,
+                    isScanning: false,
+                    lastScanned: null,
+                  });
+                }
+              });
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching data for ${config.name}:`, error);
         }
+      }
+
+      if (!hasValidData) {
+        setError("Failed to fetch context data from any kubeconfig");
+        setIsLoading(false);
+        return;
+      }
+
+      setVulnerabilityData({
+        valid: true,
+        message: `Data loaded from ${validConfigs.length} kubeconfig(s)`,
+        clusterStatuses: allClusterStatuses,
       });
       setScanStatuses(newScanStatuses);
+      setLastUpdated(new Date());
     } catch (error) {
       console.error("Error fetching context data:", error);
       setError("Failed to fetch context data from the backend");
@@ -71,19 +113,19 @@ export default function Scanning() {
     }
   };
 
-  const startScan = async (contextName: string) => {
+  const startScan = async (statusKey: string, kubeconfigName: string, contextName: string) => {
     try {
       // Update scan status to indicate scanning
       const newScanStatuses = new Map(scanStatuses);
-      newScanStatuses.set(contextName, {
-        ...newScanStatuses.get(contextName)!,
+      newScanStatuses.set(statusKey, {
+        ...newScanStatuses.get(statusKey)!,
         isScanning: true,
         error: undefined,
       });
       setScanStatuses(newScanStatuses);
 
       const response = await fetch(
-        `http://localhost:8080/api/v1/kubeconfigs/jesus/contexts/${contextName}/scan`,
+        `http://localhost:8080/api/v1/kubeconfigs/${kubeconfigName}/contexts/${contextName}/scan`,
         {
           method: "POST",
           headers: {
@@ -98,20 +140,20 @@ export default function Scanning() {
 
       // Mark scan as completed when server responds
       const finalScanStatuses = new Map(scanStatuses);
-      finalScanStatuses.set(contextName, {
-        ...finalScanStatuses.get(contextName)!,
+      finalScanStatuses.set(statusKey, {
+        ...finalScanStatuses.get(statusKey)!,
         isScanning: false,
         lastScanned: new Date(),
         error: undefined,
       });
       setScanStatuses(finalScanStatuses);
     } catch (error) {
-      console.error(`Error starting scan for ${contextName}:`, error);
+      console.error(`Error starting scan for ${kubeconfigName}/${contextName}:`, error);
 
       // Update scan status to show error
       const newScanStatuses = new Map(scanStatuses);
-      newScanStatuses.set(contextName, {
-        ...newScanStatuses.get(contextName)!,
+      newScanStatuses.set(statusKey, {
+        ...newScanStatuses.get(statusKey)!,
         isScanning: false,
         error: error instanceof Error ? error.message : "Failed to start scan",
       });
