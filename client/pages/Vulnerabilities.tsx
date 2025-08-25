@@ -27,6 +27,7 @@ import {
   ContainerImage,
   ClusterVulnerabilityStatus,
 } from "@shared/api";
+import { KubeconfigEntry } from "@shared/kubeconfig";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -67,21 +68,60 @@ export default function Vulnerabilities() {
     setError("");
 
     try {
-      const response = await fetch(
-        "http://localhost:8080/api/v1/kubeconfigs/jesus/status",
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // Get valid kubeconfigs from localStorage
+      const storedKubeconfigs = localStorage.getItem("kubeconfigs");
+      if (!storedKubeconfigs) {
+        setError(
+          "No kubeconfig files found. Please upload a kubeconfig first.",
+        );
+        setIsLoading(false);
+        return;
       }
 
-      const data = await response.json();
+      const kubeconfigs: KubeconfigEntry[] = JSON.parse(storedKubeconfigs);
+      const validConfigs = kubeconfigs.filter((k) => k.status === "valid");
 
-      // Transform the data to match our expected structure
+      if (validConfigs.length === 0) {
+        setError(
+          "No valid kubeconfig files found. Please upload a valid kubeconfig.",
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      // Fetch data from all valid kubeconfigs
+      const allClusterStatuses: any[] = [];
+      let hasValidData = false;
+
+      for (const config of validConfigs) {
+        try {
+          const response = await fetch(
+            `http://localhost:8080/api/v1/kubeconfigs/${config.name}/status`,
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.valid && data.clusterStatuses) {
+              allClusterStatuses.push(...data.clusterStatuses);
+              hasValidData = true;
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching data for ${config.name}:`, error);
+        }
+      }
+
+      if (!hasValidData) {
+        setError("Failed to fetch vulnerability data from any kubeconfig");
+        setIsLoading(false);
+        return;
+      }
+
+      // Transform the combined data
       const transformedData: VulnerabilityResponse = {
-        valid: data.valid,
-        message: data.message,
-        clusterStatuses: data.clusterStatuses.map((cluster: any) => ({
+        valid: true,
+        message: `Data loaded from ${validConfigs.length} kubeconfig(s)`,
+        clusterStatuses: allClusterStatuses.map((cluster: any) => ({
           name: cluster.name,
           server: cluster.server,
           reachable: cluster.reachable,
