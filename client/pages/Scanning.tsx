@@ -218,10 +218,12 @@ export default function Scanning() {
     if (!vulnerabilityData) return;
 
     // Start scans for all contexts concurrently
-    const scanPromises = vulnerabilityData.clusterStatuses.map((cluster) => {
-      const status = scanStatuses.get(cluster.name);
-      if (!status?.isScanning && cluster.reachable) {
-        return startScan(cluster.name);
+    const scanPromises = Array.from(scanStatuses.entries()).map(([statusKey, status]) => {
+      if (!status.isScanning) {
+        const cluster = vulnerabilityData.clusterStatuses.find(c => c.name === status.contextName);
+        if (cluster?.reachable) {
+          return startScan(statusKey, status.kubeconfigName, status.contextName);
+        }
       }
       return Promise.resolve();
     });
@@ -323,15 +325,12 @@ export default function Scanning() {
             {/* Context Cards */}
             <div>
               <h3 className="carbon-type-productive-heading-03 text-text-01 mb-4">
-                Available Contexts ({vulnerabilityData?.clusterStatuses.length})
+                Available Contexts ({Array.from(scanStatuses.keys()).length})
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {vulnerabilityData?.clusterStatuses.map((cluster) => {
-                  const scanStatus = scanStatuses.get(cluster.name) || {
-                    contextName: cluster.name,
-                    isScanning: false,
-                    lastScanned: null,
-                  };
+                {Array.from(scanStatuses.entries()).map(([statusKey, scanStatus]) => {
+                  const cluster = vulnerabilityData?.clusterStatuses.find(c => c.name === scanStatus.contextName);
+                  if (!cluster) return null;
                   const totalImages = cluster.nodes.reduce(
                     (sum, node) => sum + node.containerImages.length,
                     0,
@@ -339,7 +338,7 @@ export default function Scanning() {
 
                   return (
                     <div
-                      key={cluster.name}
+                      key={statusKey}
                       className="bg-layer-01 border border-ui-03 rounded p-6 hover:bg-layer-02 transition-colors"
                     >
                       <div className="flex items-center justify-between mb-4">
@@ -352,7 +351,7 @@ export default function Scanning() {
                               {cluster.name}
                             </h4>
                             <p className="carbon-type-label-01 text-text-02">
-                              {cluster.nodes.length} node
+                              {scanStatus.kubeconfigName} • {cluster.nodes.length} node
                               {cluster.nodes.length !== 1 ? "s" : ""} •{" "}
                               {totalImages} images
                             </p>
@@ -395,7 +394,7 @@ export default function Scanning() {
                       )}
 
                       <button
-                        onClick={() => startScan(cluster.name)}
+                        onClick={() => startScan(statusKey, scanStatus.kubeconfigName, cluster.name)}
                         disabled={scanStatus.isScanning || !cluster.reachable}
                         className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-interactive-01 text-white rounded carbon-type-body-01 hover:bg-interactive-03 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
