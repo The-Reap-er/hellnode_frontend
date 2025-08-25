@@ -10,3 +10,47 @@
 export interface DemoResponse {
   message: string;
 }
+
+/**
+ * Vulnerability data types
+ */
+export interface Vulnerability {
+  id: string;
+  category: string;
+  message: string;
+  description: string;
+  cve: string;
+  severity: "Low" | "Medium" | "High" | "Critical";
+  solution: string;
+}
+
+export interface ContainerImage {
+  name: string;
+  image: string;
+  vulnerabilities?: Vulnerability[];
+}
+
+export interface Node {
+  name: string;
+  kubeletVersion: string;
+  containerImages: ContainerImage[];
+}
+
+export interface ClusterVulnerabilityStatus {
+  name: string;
+  server: string;
+  reachable: boolean;
+  nodes: Node[];
+  apiVersions: string[];
+  permissions: {
+    canListNodes: boolean;
+    canListPods: boolean;
+    canGetMetrics: boolean;
+  };
+}
+
+export interface VulnerabilityResponse {
+  valid: boolean;
+  message: string;
+  clusterStatuses: ClusterVulnerabilityStatus[];
+}

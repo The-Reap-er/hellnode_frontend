@@ -1,3 +1,4 @@
+import * as React from "react";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, CheckCircle, XCircle, Clock } from "lucide-react";
 
@@ -5,6 +6,7 @@ interface TableColumn {
   key: string;
   label: string;
   className?: string;
+  render?: (value: any, row: TableRow) => React.ReactNode;
 }
 
 interface TableRow {
@@ -15,6 +17,7 @@ interface DataTableProps {
   columns: TableColumn[];
   data: TableRow[];
   className?: string;
+  onRowClick?: (row: TableRow, index: number) => void;
 }
 
 function getSeverityIcon(severity: string) {
@@ -54,7 +57,12 @@ function getSeverityBadge(severity: string) {
   }
 }
 
-export function DataTable({ columns, data, className }: DataTableProps) {
+export function DataTable({
+  columns,
+  data,
+  className,
+  onRowClick,
+}: DataTableProps) {
   return (
     <div
       className={cn(
@@ -81,7 +89,14 @@ export function DataTable({ columns, data, className }: DataTableProps) {
           </thead>
           <tbody className="divide-y divide-ui-03">
             {data.map((row, index) => (
-              <tr key={index} className="hover:bg-layer-02 transition-colors">
+              <tr
+                key={index}
+                className={cn(
+                  "hover:bg-layer-02 transition-colors",
+                  onRowClick && "cursor-pointer",
+                )}
+                onClick={() => onRowClick?.(row, index)}
+              >
                 {columns.map((column) => (
                   <td
                     key={column.key}
@@ -90,7 +105,9 @@ export function DataTable({ columns, data, className }: DataTableProps) {
                       column.className,
                     )}
                   >
-                    {column.key === "severity" ? (
+                    {column.render ? (
+                      column.render(row[column.key], row)
+                    ) : column.key === "severity" ? (
                       <div className="flex items-center space-x-2">
                         {getSeverityIcon(row[column.key])}
                         <span className={getSeverityBadge(row[column.key])}>

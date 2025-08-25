@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   CheckCircle,
   Server,
+  Radar,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
@@ -15,6 +16,7 @@ const navigation = [
   { name: "Kubernetes", href: "/kubernetes", icon: Shield },
   { name: "Clusters", href: "/clusters", icon: Server },
   { name: "Docker Images", href: "/docker", icon: Container },
+  { name: "Scanning", href: "/scanning", icon: Radar },
   { name: "Vulnerabilities", href: "/vulnerabilities", icon: AlertTriangle },
   { name: "Compliance", href: "/compliance", icon: CheckCircle },
   { name: "Settings", href: "/settings", icon: Settings },
