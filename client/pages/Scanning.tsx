@@ -42,7 +42,9 @@ export default function Scanning() {
       // Get valid kubeconfigs from localStorage
       const storedKubeconfigs = localStorage.getItem("kubeconfigs");
       if (!storedKubeconfigs) {
-        setError("No kubeconfig files found. Please upload a kubeconfig first.");
+        setError(
+          "No kubeconfig files found. Please upload a kubeconfig first.",
+        );
         setIsLoading(false);
         return;
       }
@@ -51,7 +53,9 @@ export default function Scanning() {
       const validConfigs = kubeconfigs.filter((k) => k.status === "valid");
 
       if (validConfigs.length === 0) {
-        setError("No valid kubeconfig files found. Please upload a valid kubeconfig.");
+        setError(
+          "No valid kubeconfig files found. Please upload a valid kubeconfig.",
+        );
         setIsLoading(false);
         return;
       }
@@ -74,17 +78,19 @@ export default function Scanning() {
               hasValidData = true;
 
               // Initialize scan statuses for each cluster
-              data.clusterStatuses.forEach((cluster: ClusterVulnerabilityStatus) => {
-                const statusKey = `${config.name}-${cluster.name}`;
-                if (!newScanStatuses.has(statusKey)) {
-                  newScanStatuses.set(statusKey, {
-                    contextName: cluster.name,
-                    kubeconfigName: config.name,
-                    isScanning: false,
-                    lastScanned: null,
-                  });
-                }
-              });
+              data.clusterStatuses.forEach(
+                (cluster: ClusterVulnerabilityStatus) => {
+                  const statusKey = `${config.name}-${cluster.name}`;
+                  if (!newScanStatuses.has(statusKey)) {
+                    newScanStatuses.set(statusKey, {
+                      contextName: cluster.name,
+                      kubeconfigName: config.name,
+                      isScanning: false,
+                      lastScanned: null,
+                    });
+                  }
+                },
+              );
             }
           }
         } catch (error) {
@@ -113,7 +119,11 @@ export default function Scanning() {
     }
   };
 
-  const startScan = async (statusKey: string, kubeconfigName: string, contextName: string) => {
+  const startScan = async (
+    statusKey: string,
+    kubeconfigName: string,
+    contextName: string,
+  ) => {
     try {
       // Update scan status to indicate scanning
       const newScanStatuses = new Map(scanStatuses);
@@ -148,7 +158,10 @@ export default function Scanning() {
       });
       setScanStatuses(finalScanStatuses);
     } catch (error) {
-      console.error(`Error starting scan for ${kubeconfigName}/${contextName}:`, error);
+      console.error(
+        `Error starting scan for ${kubeconfigName}/${contextName}:`,
+        error,
+      );
 
       // Update scan status to show error
       const newScanStatuses = new Map(scanStatuses);
@@ -260,15 +273,23 @@ export default function Scanning() {
     if (!vulnerabilityData) return;
 
     // Start scans for all contexts concurrently
-    const scanPromises = Array.from(scanStatuses.entries()).map(([statusKey, status]) => {
-      if (!status.isScanning) {
-        const cluster = vulnerabilityData.clusterStatuses.find(c => c.name === status.contextName);
-        if (cluster?.reachable) {
-          return startScan(statusKey, status.kubeconfigName, status.contextName);
+    const scanPromises = Array.from(scanStatuses.entries()).map(
+      ([statusKey, status]) => {
+        if (!status.isScanning) {
+          const cluster = vulnerabilityData.clusterStatuses.find(
+            (c) => c.name === status.contextName,
+          );
+          if (cluster?.reachable) {
+            return startScan(
+              statusKey,
+              status.kubeconfigName,
+              status.contextName,
+            );
+          }
         }
-      }
-      return Promise.resolve();
-    });
+        return Promise.resolve();
+      },
+    );
 
     await Promise.all(scanPromises);
   };
@@ -370,91 +391,102 @@ export default function Scanning() {
                 Available Contexts ({Array.from(scanStatuses.keys()).length})
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {Array.from(scanStatuses.entries()).map(([statusKey, scanStatus]) => {
-                  const cluster = vulnerabilityData?.clusterStatuses.find(c => c.name === scanStatus.contextName);
-                  if (!cluster) return null;
-                  const totalImages = cluster.nodes.reduce(
-                    (sum, node) => sum + node.containerImages.length,
-                    0,
-                  );
+                {Array.from(scanStatuses.entries()).map(
+                  ([statusKey, scanStatus]) => {
+                    const cluster = vulnerabilityData?.clusterStatuses.find(
+                      (c) => c.name === scanStatus.contextName,
+                    );
+                    if (!cluster) return null;
+                    const totalImages = cluster.nodes.reduce(
+                      (sum, node) => sum + node.containerImages.length,
+                      0,
+                    );
 
-                  return (
-                    <div
-                      key={statusKey}
-                      className="bg-layer-01 border border-ui-03 rounded p-6 hover:bg-layer-02 transition-colors"
-                    >
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center space-x-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded bg-interactive-01">
-                            <Server className="h-5 w-5 text-white" />
-                          </div>
-                          <div>
-                            <h4 className="carbon-type-productive-heading-02 text-text-01">
-                              {cluster.name}
-                            </h4>
-                            <p className="carbon-type-label-01 text-text-02">
-                              {scanStatus.kubeconfigName} • {cluster.nodes.length} node
-                              {cluster.nodes.length !== 1 ? "s" : ""} •{" "}
-                              {totalImages} images
-                            </p>
-                          </div>
-                        </div>
-                        {getScanStatusBadge(scanStatus)}
-                      </div>
-
-                      <div className="space-y-2 mb-4">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-text-02">Server:</span>
-                          <span className="text-text-01 font-mono text-xs">
-                            {cluster.server.replace("https://", "")}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-text-02">Status:</span>
-                          <span
-                            className={`flex items-center space-x-1 ${cluster.reachable ? "text-support-02" : "text-support-01"}`}
-                          >
-                            {cluster.reachable ? (
-                              <CheckCircle className="h-3 w-3" />
-                            ) : (
-                              <AlertTriangle className="h-3 w-3" />
-                            )}
-                            <span>
-                              {cluster.reachable ? "Online" : "Offline"}
-                            </span>
-                          </span>
-                        </div>
-                      </div>
-
-                      {scanStatus.error && (
-                        <div className="mb-4 p-3 bg-support-01 text-white rounded text-sm">
-                          <div className="flex items-center space-x-2">
-                            <AlertTriangle className="h-4 w-4" />
-                            <span>{scanStatus.error}</span>
-                          </div>
-                        </div>
-                      )}
-
-                      <button
-                        onClick={() => startScan(statusKey, scanStatus.kubeconfigName, cluster.name)}
-                        disabled={scanStatus.isScanning || !cluster.reachable}
-                        className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-interactive-01 text-white rounded carbon-type-body-01 hover:bg-interactive-03 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    return (
+                      <div
+                        key={statusKey}
+                        className="bg-layer-01 border border-ui-03 rounded p-6 hover:bg-layer-02 transition-colors"
                       >
-                        {scanStatus.isScanning ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            <span>Scanning...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Play className="h-4 w-4" />
-                            <span>Start Scan</span>
-                          </>
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded bg-interactive-01">
+                              <Server className="h-5 w-5 text-white" />
+                            </div>
+                            <div>
+                              <h4 className="carbon-type-productive-heading-02 text-text-01">
+                                {cluster.name}
+                              </h4>
+                              <p className="carbon-type-label-01 text-text-02">
+                                {scanStatus.kubeconfigName} •{" "}
+                                {cluster.nodes.length} node
+                                {cluster.nodes.length !== 1 ? "s" : ""} •{" "}
+                                {totalImages} images
+                              </p>
+                            </div>
+                          </div>
+                          {getScanStatusBadge(scanStatus)}
+                        </div>
+
+                        <div className="space-y-2 mb-4">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-text-02">Server:</span>
+                            <span className="text-text-01 font-mono text-xs">
+                              {cluster.server.replace("https://", "")}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-text-02">Status:</span>
+                            <span
+                              className={`flex items-center space-x-1 ${cluster.reachable ? "text-support-02" : "text-support-01"}`}
+                            >
+                              {cluster.reachable ? (
+                                <CheckCircle className="h-3 w-3" />
+                              ) : (
+                                <AlertTriangle className="h-3 w-3" />
+                              )}
+                              <span>
+                                {cluster.reachable ? "Online" : "Offline"}
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+
+                        {scanStatus.error && (
+                          <div className="mb-4 p-3 bg-support-01 text-white rounded text-sm">
+                            <div className="flex items-center space-x-2">
+                              <AlertTriangle className="h-4 w-4" />
+                              <span>{scanStatus.error}</span>
+                            </div>
+                          </div>
                         )}
-                      </button>
-                    </div>
-                  );
-                })}
+
+                        <button
+                          onClick={() =>
+                            startScan(
+                              statusKey,
+                              scanStatus.kubeconfigName,
+                              cluster.name,
+                            )
+                          }
+                          disabled={scanStatus.isScanning || !cluster.reachable}
+                          className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-interactive-01 text-white rounded carbon-type-body-01 hover:bg-interactive-03 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {scanStatus.isScanning ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <span>Scanning...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-4 w-4" />
+                              <span>Start Scan</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  },
+                )}
               </div>
             </div>
           </div>

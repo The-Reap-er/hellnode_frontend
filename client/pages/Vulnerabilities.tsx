@@ -71,7 +71,9 @@ export default function Vulnerabilities() {
       // Get valid kubeconfigs from localStorage
       const storedKubeconfigs = localStorage.getItem("kubeconfigs");
       if (!storedKubeconfigs) {
-        setError("No kubeconfig files found. Please upload a kubeconfig first.");
+        setError(
+          "No kubeconfig files found. Please upload a kubeconfig first.",
+        );
         setIsLoading(false);
         return;
       }
@@ -80,7 +82,9 @@ export default function Vulnerabilities() {
       const validConfigs = kubeconfigs.filter((k) => k.status === "valid");
 
       if (validConfigs.length === 0) {
-        setError("No valid kubeconfig files found. Please upload a valid kubeconfig.");
+        setError(
+          "No valid kubeconfig files found. Please upload a valid kubeconfig.",
+        );
         setIsLoading(false);
         return;
       }
