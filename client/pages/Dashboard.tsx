@@ -9,8 +9,6 @@ import {
   AlertTriangle,
   CheckCircle,
   Activity,
-  TrendingUp,
-  Clock,
   Search,
   Server,
   Loader2,
