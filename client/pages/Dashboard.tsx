@@ -267,19 +267,60 @@ export default function Dashboard() {
     { key: "affected", label: "Affected Assets" },
   ];
 
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="col-span-full">
+          <div className="flex items-center justify-center h-64">
+            <div className="flex flex-col items-center space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin text-interactive-01" />
+              <div>
+                <h3 className="carbon-type-productive-heading-02 text-text-01 mb-2">
+                  Loading Dashboard
+                </h3>
+                <p className="carbon-type-body-01 text-text-02">
+                  Fetching data from your Kubernetes clusters...
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="col-span-full">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="carbon-type-productive-heading-04 text-text-01 mb-2">
-            Security Dashboard
-          </h1>
-          <p className="carbon-type-body-02 text-text-02">
-            Monitor and manage security vulnerabilities across your Kubernetes
-            clusters and Docker images
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="carbon-type-productive-heading-04 text-text-01 mb-2">
+                Security Dashboard
+              </h1>
+              <p className="carbon-type-body-02 text-text-02">
+                Monitor and manage security vulnerabilities across your Kubernetes
+                clusters and Docker images
+              </p>
+            </div>
+            <button
+              onClick={fetchDashboardData}
+              className="flex items-center space-x-2 px-4 py-2 border border-ui-04 text-text-01 rounded carbon-type-body-01 hover:bg-ui-01 transition-colors"
+            >
+              <Activity className="h-4 w-4" />
+              <span>Refresh</span>
+            </button>
+          </div>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 flex items-center space-x-2 p-4 bg-support-01 text-white rounded">
+            <AlertTriangle className="h-5 w-5" />
+            <span className="carbon-type-body-01">{error}</span>
+          </div>
+        )}
 
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
