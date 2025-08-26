@@ -183,48 +183,42 @@ export default function Dashboard() {
     },
   ];
 
-  const recentScans = [
-    {
-      name: "nginx:1.21-alpine",
-      type: "Docker Image",
-      status: "Completed",
-      severity: "Medium",
-      vulnerabilities: "3",
-      lastScan: "2 hours ago",
-    },
-    {
-      name: "production-cluster",
-      type: "Kubernetes",
-      status: "Running",
-      severity: "High",
-      vulnerabilities: "12",
-      lastScan: "Currently scanning",
-    },
-    {
-      name: "postgres:14",
-      type: "Docker Image",
-      status: "Completed",
-      severity: "Critical",
-      vulnerabilities: "7",
-      lastScan: "4 hours ago",
-    },
-    {
-      name: "dev-cluster",
-      type: "Kubernetes",
-      status: "Failed",
-      severity: "Low",
-      vulnerabilities: "1",
-      lastScan: "6 hours ago",
-    },
-    {
-      name: "redis:7-alpine",
-      type: "Docker Image",
-      status: "Completed",
-      severity: "Low",
-      vulnerabilities: "0",
-      lastScan: "8 hours ago",
-    },
-  ];
+  // Generate recent scans from real data
+  const recentScans: RecentScanData[] = allScans
+    .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())
+    .slice(0, 5)
+    .map((scan) => {
+      const cluster = vulnerabilityData?.clusterStatuses.find(c => c.name === scan.context);
+      const totalVulns = cluster?.nodes.reduce((sum: number, node: any) =>
+        sum + node.containerImages.reduce((imgSum: number, img: any) =>
+          imgSum + (img.vulnerabilities?.length || 0), 0), 0) || 0;
+
+      const maxSeverity = cluster?.nodes.reduce((maxSev: string, node: any) => {
+        const nodeSeverity = node.containerImages.reduce((max: string, img: any) => {
+          if (!img.vulnerabilities) return max;
+          const severities = img.vulnerabilities.map((v: any) => v.severity);
+          if (severities.includes("Critical")) return "Critical";
+          if (severities.includes("High") && max !== "Critical") return "High";
+          if (severities.includes("Medium") && !["Critical", "High"].includes(max)) return "Medium";
+          if (severities.includes("Low") && max === "Low") return "Low";
+          return max;
+        }, "Low");
+
+        if (nodeSeverity === "Critical") return "Critical";
+        if (nodeSeverity === "High" && maxSev !== "Critical") return "High";
+        if (nodeSeverity === "Medium" && !["Critical", "High"].includes(maxSev)) return "Medium";
+        return maxSev;
+      }, "Low") || "Low";
+
+      return {
+        name: scan.context,
+        type: "Kubernetes Cluster",
+        status: scan.status === "completed" ? "Completed" : scan.status === "running" ? "Running" : "Failed",
+        severity: maxSeverity,
+        vulnerabilities: totalVulns.toString(),
+        lastScan: formatDistanceToNow(new Date(scan.started_at), { addSuffix: true }),
+      };
+    });
 
   const tableColumns = [
     { key: "name", label: "Name" },
@@ -235,29 +229,35 @@ export default function Dashboard() {
     { key: "lastScan", label: "Last Scan" },
   ];
 
-  const criticalVulnerabilities = [
-    {
-      cve: "CVE-2023-38545",
-      severity: "Critical",
-      component: "curl",
-      description: "SOCKS5 heap buffer overflow",
-      affected: "nginx:1.21, postgres:14",
-    },
-    {
-      cve: "CVE-2023-4911",
-      severity: "High",
-      component: "glibc",
-      description: "Buffer overflow in ld.so",
-      affected: "production-cluster",
-    },
-    {
-      cve: "CVE-2023-39325",
-      severity: "High",
-      component: "golang",
-      description: "HTTP/2 rapid reset",
-      affected: "multiple containers",
-    },
-  ];
+  // Generate critical vulnerabilities from real data
+  const criticalVulnerabilities: CriticalVulnData[] = allVulnerabilities
+    .filter((vuln) => vuln.severity === "Critical" || vuln.severity === "High")
+    .slice(0, 10)
+    .map((vuln) => {
+      // Find which clusters/images this vulnerability affects
+      const affectedAssets: string[] = [];
+      vulnerabilityData?.clusterStatuses.forEach((cluster) => {
+        cluster.nodes.forEach((node: any) => {
+          node.containerImages.forEach((image: any) => {
+            if (image.vulnerabilities?.some((v: any) => v.id === vuln.id)) {
+              affectedAssets.push(`${cluster.name}/${image.name}`);
+            }
+          });
+        });
+      });
+
+      return {
+        cve: vuln.cve || vuln.id,
+        severity: vuln.severity,
+        component: vuln.category || "Unknown",
+        description: vuln.description.length > 80
+          ? vuln.description.substring(0, 80) + "..."
+          : vuln.description,
+        affected: affectedAssets.length > 0
+          ? affectedAssets.slice(0, 2).join(", ") + (affectedAssets.length > 2 ? "..." : "")
+          : "Unknown",
+      };
+    });
 
   const vulnerabilityColumns = [
     { key: "cve", label: "CVE ID" },
