@@ -218,6 +218,9 @@ export default function Scanning() {
         error: undefined,
       });
       setScanStatuses(finalScanStatuses);
+
+      // Refresh scan history for this context
+      await fetchScanHistory(kubeconfigName, contextName);
     } catch (error) {
       console.error(
         `Error starting scan for ${kubeconfigName}/${contextName}:`,
