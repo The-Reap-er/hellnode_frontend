@@ -441,14 +441,38 @@ export default function Dashboard() {
             <h2 className="carbon-type-productive-heading-03 text-text-01">
               Critical Vulnerabilities
             </h2>
-            <button className="carbon-type-body-01 text-interactive-01 hover:text-interactive-03">
+            <Link
+              to="/vulnerabilities"
+              className="carbon-type-body-01 text-interactive-01 hover:text-interactive-03"
+            >
               View all vulnerabilities →
-            </button>
+            </Link>
           </div>
-          <DataTable
-            columns={vulnerabilityColumns}
-            data={criticalVulnerabilities}
-          />
+          {criticalVulnerabilities.length > 0 ? (
+            <DataTable
+              columns={vulnerabilityColumns}
+              data={criticalVulnerabilities}
+            />
+          ) : (
+            <div className="bg-layer-01 border border-ui-03 rounded p-8 text-center">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-support-02">
+                  <CheckCircle className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="carbon-type-productive-heading-02 text-text-01 mb-2">
+                    No Critical Vulnerabilities
+                  </h3>
+                  <p className="carbon-type-body-01 text-text-02">
+                    {allVulnerabilities.length === 0
+                      ? "No vulnerability data available. Run a scan to analyze your clusters."
+                      : "Great! No critical or high severity vulnerabilities found in your clusters."
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>
