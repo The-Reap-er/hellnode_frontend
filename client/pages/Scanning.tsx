@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 
 interface ScanStatus {
   contextName: string;
+  kubeconfigName: string;
   isScanning: boolean;
   lastScanned: Date | null;
   error?: string;
@@ -32,6 +33,10 @@ export default function Scanning() {
   const [scanStatuses, setScanStatuses] = useState<Map<string, ScanStatus>>(
     new Map(),
   );
+  const [scanHistory, setScanHistory] = useState<Map<string, ScanRecord[]>>(
+    new Map(),
+  );
+  const [selectedContext, setSelectedContext] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
