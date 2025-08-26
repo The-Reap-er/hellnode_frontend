@@ -531,29 +531,37 @@ export default function Scanning() {
                           </div>
                         )}
 
-                        <button
-                          onClick={() =>
-                            startScan(
-                              statusKey,
-                              scanStatus.kubeconfigName,
-                              cluster.name,
-                            )
-                          }
-                          disabled={scanStatus.isScanning || !cluster.reachable}
-                          className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-interactive-01 text-white rounded carbon-type-body-01 hover:bg-interactive-03 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {scanStatus.isScanning ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              <span>Scanning...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Play className="h-4 w-4" />
-                              <span>Start Scan</span>
-                            </>
-                          )}
-                        </button>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() =>
+                              startScan(
+                                statusKey,
+                                scanStatus.kubeconfigName,
+                                cluster.name,
+                              )
+                            }
+                            disabled={scanStatus.isScanning || !cluster.reachable}
+                            className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-interactive-01 text-white rounded carbon-type-body-01 hover:bg-interactive-03 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {scanStatus.isScanning ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>Scanning...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Play className="h-4 w-4" />
+                                <span>Start Scan</span>
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => setSelectedContext(statusKey)}
+                            className="flex items-center justify-center px-3 py-2 border border-ui-04 text-text-01 rounded carbon-type-body-01 hover:bg-ui-01 transition-colors"
+                          >
+                            <History className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     );
                   },
