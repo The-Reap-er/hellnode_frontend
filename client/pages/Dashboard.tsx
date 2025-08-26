@@ -35,7 +35,8 @@ interface CriticalVulnData {
 }
 
 export default function Dashboard() {
-  const [vulnerabilityData, setVulnerabilityData] = useState<VulnerabilityResponse | null>(null);
+  const [vulnerabilityData, setVulnerabilityData] =
+    useState<VulnerabilityResponse | null>(null);
   const [allScans, setAllScans] = useState<ScanRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -70,7 +71,7 @@ export default function Dashboard() {
         try {
           // Fetch cluster status and vulnerabilities
           const statusResponse = await fetch(
-            `http://localhost:8080/api/v1/kubeconfigs/${config.name}/status`
+            `http://localhost:8080/api/v1/kubeconfigs/${config.name}/status`,
           );
 
           if (statusResponse.ok) {
@@ -82,7 +83,7 @@ export default function Dashboard() {
               for (const cluster of statusData.clusterStatuses) {
                 try {
                   const scanResponse = await fetch(
-                    `http://localhost:8080/api/v1/kubeconfigs/${config.name}/contexts/${cluster.name}/scans`
+                    `http://localhost:8080/api/v1/kubeconfigs/${config.name}/contexts/${cluster.name}/scans`,
                   );
 
                   if (scanResponse.ok) {
@@ -92,7 +93,10 @@ export default function Dashboard() {
                     }
                   }
                 } catch (scanError) {
-                  console.error(`Error fetching scans for ${cluster.name}:`, scanError);
+                  console.error(
+                    `Error fetching scans for ${cluster.name}:`,
+                    scanError,
+                  );
                 }
               }
             }
@@ -121,18 +125,22 @@ export default function Dashboard() {
   }, []);
 
   // Calculate real metrics
-  const totalScans = allScans.reduce((sum, scan) => sum + (scan.total_scans || 0), 0);
+  const totalScans = allScans.reduce(
+    (sum, scan) => sum + (scan.total_scans || 0),
+    0,
+  );
   const totalClusters = vulnerabilityData?.clusterStatuses.length || 0;
 
-  const totalImages = vulnerabilityData?.clusterStatuses.reduce(
-    (sum, cluster) =>
-      sum +
-      cluster.nodes.reduce(
-        (nodeSum: number, node: any) => nodeSum + node.containerImages.length,
-        0
-      ),
-    0
-  ) || 0;
+  const totalImages =
+    vulnerabilityData?.clusterStatuses.reduce(
+      (sum, cluster) =>
+        sum +
+        cluster.nodes.reduce(
+          (nodeSum: number, node: any) => nodeSum + node.containerImages.length,
+          0,
+        ),
+      0,
+    ) || 0;
 
   // Get all vulnerabilities and count critical ones
   const allVulnerabilities: Vulnerability[] = [];
@@ -147,7 +155,7 @@ export default function Dashboard() {
   });
 
   const criticalVulnCount = allVulnerabilities.filter(
-    (vuln) => vuln.severity === "Critical"
+    (vuln) => vuln.severity === "Critical",
   ).length;
 
   const metrics = [
@@ -162,7 +170,8 @@ export default function Dashboard() {
       title: "Critical Vulnerabilities",
       value: criticalVulnCount.toString(),
       change: isLoading ? "" : "Across all clusters",
-      changeType: criticalVulnCount > 0 ? ("negative" as const) : ("positive" as const),
+      changeType:
+        criticalVulnCount > 0 ? ("negative" as const) : ("positive" as const),
       icon: AlertTriangle,
     },
     {
@@ -183,38 +192,73 @@ export default function Dashboard() {
 
   // Generate recent scans from real data
   const recentScans: RecentScanData[] = allScans
-    .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())
+    .sort(
+      (a, b) =>
+        new Date(b.started_at).getTime() - new Date(a.started_at).getTime(),
+    )
     .slice(0, 5)
     .map((scan) => {
-      const cluster = vulnerabilityData?.clusterStatuses.find(c => c.name === scan.context);
-      const totalVulns = cluster?.nodes.reduce((sum: number, node: any) =>
-        sum + node.containerImages.reduce((imgSum: number, img: any) =>
-          imgSum + (img.vulnerabilities?.length || 0), 0), 0) || 0;
+      const cluster = vulnerabilityData?.clusterStatuses.find(
+        (c) => c.name === scan.context,
+      );
+      const totalVulns =
+        cluster?.nodes.reduce(
+          (sum: number, node: any) =>
+            sum +
+            node.containerImages.reduce(
+              (imgSum: number, img: any) =>
+                imgSum + (img.vulnerabilities?.length || 0),
+              0,
+            ),
+          0,
+        ) || 0;
 
-      const maxSeverity = cluster?.nodes.reduce((maxSev: string, node: any) => {
-        const nodeSeverity = node.containerImages.reduce((max: string, img: any) => {
-          if (!img.vulnerabilities) return max;
-          const severities = img.vulnerabilities.map((v: any) => v.severity);
-          if (severities.includes("Critical")) return "Critical";
-          if (severities.includes("High") && max !== "Critical") return "High";
-          if (severities.includes("Medium") && !["Critical", "High"].includes(max)) return "Medium";
-          if (severities.includes("Low") && max === "Low") return "Low";
-          return max;
-        }, "Low");
+      const maxSeverity =
+        cluster?.nodes.reduce((maxSev: string, node: any) => {
+          const nodeSeverity = node.containerImages.reduce(
+            (max: string, img: any) => {
+              if (!img.vulnerabilities) return max;
+              const severities = img.vulnerabilities.map(
+                (v: any) => v.severity,
+              );
+              if (severities.includes("Critical")) return "Critical";
+              if (severities.includes("High") && max !== "Critical")
+                return "High";
+              if (
+                severities.includes("Medium") &&
+                !["Critical", "High"].includes(max)
+              )
+                return "Medium";
+              if (severities.includes("Low") && max === "Low") return "Low";
+              return max;
+            },
+            "Low",
+          );
 
-        if (nodeSeverity === "Critical") return "Critical";
-        if (nodeSeverity === "High" && maxSev !== "Critical") return "High";
-        if (nodeSeverity === "Medium" && !["Critical", "High"].includes(maxSev)) return "Medium";
-        return maxSev;
-      }, "Low") || "Low";
+          if (nodeSeverity === "Critical") return "Critical";
+          if (nodeSeverity === "High" && maxSev !== "Critical") return "High";
+          if (
+            nodeSeverity === "Medium" &&
+            !["Critical", "High"].includes(maxSev)
+          )
+            return "Medium";
+          return maxSev;
+        }, "Low") || "Low";
 
       return {
         name: scan.context,
         type: "Kubernetes Cluster",
-        status: scan.status === "completed" ? "Completed" : scan.status === "running" ? "Running" : "Failed",
+        status:
+          scan.status === "completed"
+            ? "Completed"
+            : scan.status === "running"
+              ? "Running"
+              : "Failed",
         severity: maxSeverity,
         vulnerabilities: totalVulns.toString(),
-        lastScan: formatDistanceToNow(new Date(scan.started_at), { addSuffix: true }),
+        lastScan: formatDistanceToNow(new Date(scan.started_at), {
+          addSuffix: true,
+        }),
       };
     });
 
@@ -248,12 +292,15 @@ export default function Dashboard() {
         cve: vuln.cve || vuln.id,
         severity: vuln.severity,
         component: vuln.category || "Unknown",
-        description: vuln.description.length > 80
-          ? vuln.description.substring(0, 80) + "..."
-          : vuln.description,
-        affected: affectedAssets.length > 0
-          ? affectedAssets.slice(0, 2).join(", ") + (affectedAssets.length > 2 ? "..." : "")
-          : "Unknown",
+        description:
+          vuln.description.length > 80
+            ? vuln.description.substring(0, 80) + "..."
+            : vuln.description,
+        affected:
+          affectedAssets.length > 0
+            ? affectedAssets.slice(0, 2).join(", ") +
+              (affectedAssets.length > 2 ? "..." : "")
+            : "Unknown",
       };
     });
 
@@ -298,8 +345,8 @@ export default function Dashboard() {
                 Security Dashboard
               </h1>
               <p className="carbon-type-body-02 text-text-02">
-                Monitor and manage security vulnerabilities across your Kubernetes
-                clusters and Docker images
+                Monitor and manage security vulnerabilities across your
+                Kubernetes clusters and Docker images
               </p>
             </div>
             <button
@@ -425,7 +472,6 @@ export default function Dashboard() {
                 </Link>
               </div>
             </div>
-
           </div>
         </div>
 
@@ -460,8 +506,7 @@ export default function Dashboard() {
                   <p className="carbon-type-body-01 text-text-02">
                     {allVulnerabilities.length === 0
                       ? "No vulnerability data available. Run a scan to analyze your clusters."
-                      : "Great! No critical or high severity vulnerabilities found in your clusters."
-                    }
+                      : "Great! No critical or high severity vulnerabilities found in your clusters."}
                   </p>
                 </div>
               </div>

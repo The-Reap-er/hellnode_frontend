@@ -18,19 +18,21 @@ export function ScanHistory({ kubeconfigName, contextName }: ScanHistoryProps) {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const response = await fetch(
-        `http://localhost:8080/api/v1/kubeconfigs/${kubeconfigName}/contexts/${contextName}/scans`
+        `http://localhost:8080/api/v1/kubeconfigs/${kubeconfigName}/contexts/${contextName}/scans`,
       );
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch scan history: ${response.status}`);
       }
-      
+
       const data = await response.json();
       setScans(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch scan history");
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch scan history",
+      );
       setScans([]);
     } finally {
       setIsLoading(false);
@@ -95,7 +97,9 @@ export function ScanHistory({ kubeconfigName, contextName }: ScanHistoryProps) {
       <div className="bg-layer-01 border border-ui-03 rounded p-6">
         <div className="flex items-center justify-center space-x-2">
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span className="carbon-type-body-01 text-text-02">Loading scan history...</span>
+          <span className="carbon-type-body-01 text-text-02">
+            Loading scan history...
+          </span>
         </div>
       </div>
     );
@@ -121,7 +125,9 @@ export function ScanHistory({ kubeconfigName, contextName }: ScanHistoryProps) {
           </h3>
           <div className="flex items-center space-x-2 text-text-02">
             <Activity className="h-4 w-4" />
-            <span className="carbon-type-label-01">{scans.length} total scans</span>
+            <span className="carbon-type-label-01">
+              {scans.length} total scans
+            </span>
           </div>
         </div>
         <p className="carbon-type-body-01 text-text-02 mt-1">
@@ -172,7 +178,9 @@ export function ScanHistory({ kubeconfigName, contextName }: ScanHistoryProps) {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex flex-col">
                       <span className="carbon-type-body-01 text-text-01">
-                        {formatDistanceToNow(new Date(scan.started_at), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(scan.started_at), {
+                          addSuffix: true,
+                        })}
                       </span>
                       <span className="carbon-type-label-01 text-text-03">
                         {new Date(scan.started_at).toLocaleString()}

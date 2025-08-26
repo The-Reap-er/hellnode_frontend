@@ -16,7 +16,11 @@ import {
   Loader2,
   History,
 } from "lucide-react";
-import { VulnerabilityResponse, ClusterVulnerabilityStatus, ScanRecord } from "@shared/api";
+import {
+  VulnerabilityResponse,
+  ClusterVulnerabilityStatus,
+  ScanRecord,
+} from "@shared/api";
 import { KubeconfigEntry } from "@shared/kubeconfig";
 import { Badge } from "@/components/ui/badge";
 
@@ -42,10 +46,13 @@ export default function Scanning() {
   const [error, setError] = useState("");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const fetchScanHistory = async (kubeconfigName: string, contextName: string) => {
+  const fetchScanHistory = async (
+    kubeconfigName: string,
+    contextName: string,
+  ) => {
     try {
       const response = await fetch(
-        `http://localhost:8080/api/v1/kubeconfigs/${kubeconfigName}/contexts/${contextName}/scans`
+        `http://localhost:8080/api/v1/kubeconfigs/${kubeconfigName}/contexts/${contextName}/scans`,
       );
 
       if (response.ok) {
@@ -60,7 +67,10 @@ export default function Scanning() {
         return scans;
       }
     } catch (error) {
-      console.error(`Error fetching scan history for ${kubeconfigName}/${contextName}:`, error);
+      console.error(
+        `Error fetching scan history for ${kubeconfigName}/${contextName}:`,
+        error,
+      );
     }
     return [];
   };
@@ -71,7 +81,7 @@ export default function Scanning() {
     for (const config of validConfigs) {
       try {
         const response = await fetch(
-          `http://localhost:8080/api/v1/kubeconfigs/${config.name}/status`
+          `http://localhost:8080/api/v1/kubeconfigs/${config.name}/status`,
         );
 
         if (response.ok) {
@@ -250,16 +260,20 @@ export default function Scanning() {
   ).length;
 
   // Calculate completed scans from scan history (sum of total_scans from latest entry for each context)
-  const completedScans = Array.from(scanHistory.values()).reduce((total, contextScans) => {
-    if (contextScans.length > 0) {
-      // Get the latest scan entry which contains the total_scans count
-      const latestScan = contextScans.sort((a, b) =>
-        new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
-      )[0];
-      return total + (latestScan?.total_scans || 0);
-    }
-    return total;
-  }, 0);
+  const completedScans = Array.from(scanHistory.values()).reduce(
+    (total, contextScans) => {
+      if (contextScans.length > 0) {
+        // Get the latest scan entry which contains the total_scans count
+        const latestScan = contextScans.sort(
+          (a, b) =>
+            new Date(b.started_at).getTime() - new Date(a.started_at).getTime(),
+        )[0];
+        return total + (latestScan?.total_scans || 0);
+      }
+      return total;
+    },
+    0,
+  );
 
   const totalImages =
     vulnerabilityData?.clusterStatuses.reduce(
@@ -544,7 +558,9 @@ export default function Scanning() {
                                 cluster.name,
                               )
                             }
-                            disabled={scanStatus.isScanning || !cluster.reachable}
+                            disabled={
+                              scanStatus.isScanning || !cluster.reachable
+                            }
                             className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-interactive-01 text-white rounded carbon-type-body-01 hover:bg-interactive-03 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {scanStatus.isScanning ? (
