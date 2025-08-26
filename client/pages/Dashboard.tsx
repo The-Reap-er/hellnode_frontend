@@ -397,27 +397,39 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Scan Status */}
+            {/* Active Scans */}
             <div className="bg-layer-01 border border-ui-03 rounded p-6">
               <h3 className="carbon-type-productive-heading-02 text-text-01 mb-4">
-                Active Scans
+                Scan Status
               </h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Clock className="h-4 w-4 text-support-04" />
-                    <span className="carbon-type-body-01 text-text-01">
-                      production-cluster
-                    </span>
+              <div className="space-y-4">
+                {allScans.filter(scan => scan.status === "running").length > 0 ? (
+                  allScans
+                    .filter(scan => scan.status === "running")
+                    .slice(0, 3)
+                    .map((scan) => (
+                      <div key={scan.id} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <Clock className="h-4 w-4 text-support-04" />
+                            <span className="carbon-type-body-01 text-text-01">
+                              {scan.context}
+                            </span>
+                          </div>
+                          <span className="carbon-type-label-01 text-text-02">Running</span>
+                        </div>
+                        <div className="w-full bg-ui-03 rounded-full h-2">
+                          <div className="bg-support-04 h-2 rounded-full animate-pulse w-full"></div>
+                        </div>
+                      </div>
+                    ))
+                ) : (
+                  <div className="text-center py-4">
+                    <CheckCircle className="h-8 w-8 text-support-02 mx-auto mb-2" />
+                    <p className="carbon-type-body-01 text-text-02">No active scans</p>
+                    <p className="carbon-type-label-01 text-text-03">All scans completed</p>
                   </div>
-                  <span className="carbon-type-label-01 text-text-02">67%</span>
-                </div>
-                <div className="w-full bg-ui-03 rounded-full h-2">
-                  <div
-                    className="bg-support-04 h-2 rounded-full"
-                    style={{ width: "67%" }}
-                  ></div>
-                </div>
+                )}
               </div>
             </div>
           </div>
