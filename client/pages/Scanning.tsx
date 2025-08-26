@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { MetricCard } from "@/components/ui/metric-card";
+import { ScanHistory } from "@/components/ui/scan-history";
 import {
   Radar,
   Play,
@@ -13,12 +14,19 @@ import {
   Clock,
   Package,
   Loader2,
+  History,
 } from "lucide-react";
-import { VulnerabilityResponse, ClusterVulnerabilityStatus } from "@shared/api";
+import {
+  VulnerabilityResponse,
+  ClusterVulnerabilityStatus,
+  ScanRecord,
+} from "@shared/api";
+import { KubeconfigEntry } from "@shared/kubeconfig";
 import { Badge } from "@/components/ui/badge";
 
 interface ScanStatus {
   contextName: string;
+  kubeconfigName: string;
   isScanning: boolean;
   lastScanned: Date | null;
   error?: string;
@@ -30,9 +38,69 @@ export default function Scanning() {
   const [scanStatuses, setScanStatuses] = useState<Map<string, ScanStatus>>(
     new Map(),
   );
+  const [scanHistory, setScanHistory] = useState<Map<string, ScanRecord[]>>(
+    new Map(),
+  );
+  const [selectedContext, setSelectedContext] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  const fetchScanHistory = async (
+    kubeconfigName: string,
+    contextName: string,
+  ) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/v1/kubeconfigs/${kubeconfigName}/contexts/${contextName}/scans`,
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const scans = Array.isArray(data) ? data : [];
+
+        // Update scan history map
+        const newScanHistory = new Map(scanHistory);
+        newScanHistory.set(`${kubeconfigName}-${contextName}`, scans);
+        setScanHistory(newScanHistory);
+
+        return scans;
+      }
+    } catch (error) {
+      console.error(
+        `Error fetching scan history for ${kubeconfigName}/${contextName}:`,
+        error,
+      );
+    }
+    return [];
+  };
+
+  const fetchAllScanHistory = async (validConfigs: any[]) => {
+    const newScanHistory = new Map(scanHistory);
+
+    for (const config of validConfigs) {
+      try {
+        const response = await fetch(
+          `http://localhost:8080/api/v1/kubeconfigs/${config.name}/status`,
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.valid && data.clusterStatuses) {
+            // Fetch scan history for each context
+            for (const cluster of data.clusterStatuses) {
+              const scans = await fetchScanHistory(config.name, cluster.name);
+              newScanHistory.set(`${config.name}-${cluster.name}`, scans);
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`Error fetching scan history for ${config.name}:`, error);
+      }
+    }
+
+    setScanHistory(newScanHistory);
+  };
 
   const fetchContextData = async () => {
     setIsLoading(true);
@@ -110,6 +178,10 @@ export default function Scanning() {
         clusterStatuses: allClusterStatuses,
       });
       setScanStatuses(newScanStatuses);
+
+      // Fetch scan history for all contexts
+      await fetchAllScanHistory(validConfigs);
+
       setLastUpdated(new Date());
     } catch (error) {
       console.error("Error fetching context data:", error);
@@ -157,6 +229,9 @@ export default function Scanning() {
         error: undefined,
       });
       setScanStatuses(finalScanStatuses);
+
+      // Refresh scan history for this context
+      await fetchScanHistory(kubeconfigName, contextName);
     } catch (error) {
       console.error(
         `Error starting scan for ${kubeconfigName}/${contextName}:`,
@@ -183,9 +258,23 @@ export default function Scanning() {
   const activeScans = Array.from(scanStatuses.values()).filter(
     (status) => status.isScanning,
   ).length;
-  const completedScans = Array.from(scanStatuses.values()).filter(
-    (status) => status.lastScanned,
-  ).length;
+
+  // Calculate completed scans from scan history (sum of total_scans from latest entry for each context)
+  const completedScans = Array.from(scanHistory.values()).reduce(
+    (total, contextScans) => {
+      if (contextScans.length > 0) {
+        // Get the latest scan entry which contains the total_scans count
+        const latestScan = contextScans.sort(
+          (a, b) =>
+            new Date(b.started_at).getTime() - new Date(a.started_at).getTime(),
+        )[0];
+        return total + (latestScan?.total_scans || 0);
+      }
+      return total;
+    },
+    0,
+  );
+
   const totalImages =
     vulnerabilityData?.clusterStatuses.reduce(
       (sum, cluster) =>
@@ -460,35 +549,75 @@ export default function Scanning() {
                           </div>
                         )}
 
-                        <button
-                          onClick={() =>
-                            startScan(
-                              statusKey,
-                              scanStatus.kubeconfigName,
-                              cluster.name,
-                            )
-                          }
-                          disabled={scanStatus.isScanning || !cluster.reachable}
-                          className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-interactive-01 text-white rounded carbon-type-body-01 hover:bg-interactive-03 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {scanStatus.isScanning ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              <span>Scanning...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Play className="h-4 w-4" />
-                              <span>Start Scan</span>
-                            </>
-                          )}
-                        </button>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() =>
+                              startScan(
+                                statusKey,
+                                scanStatus.kubeconfigName,
+                                cluster.name,
+                              )
+                            }
+                            disabled={
+                              scanStatus.isScanning || !cluster.reachable
+                            }
+                            className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-interactive-01 text-white rounded carbon-type-body-01 hover:bg-interactive-03 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {scanStatus.isScanning ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>Scanning...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Play className="h-4 w-4" />
+                                <span>Start Scan</span>
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => setSelectedContext(statusKey)}
+                            className="flex items-center justify-center px-3 py-2 border border-ui-04 text-text-01 rounded carbon-type-body-01 hover:bg-ui-01 transition-colors"
+                          >
+                            <History className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     );
                   },
                 )}
               </div>
             </div>
+
+            {/* Scan History Section */}
+            {selectedContext && (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="carbon-type-productive-heading-03 text-text-01">
+                    Scan History
+                  </h3>
+                  <button
+                    onClick={() => setSelectedContext(null)}
+                    className="flex items-center space-x-2 px-3 py-1 text-text-02 hover:text-text-01 carbon-type-body-01"
+                  >
+                    <span>Close</span>
+                  </button>
+                </div>
+
+                {(() => {
+                  const scanStatus = scanStatuses.get(selectedContext);
+                  if (scanStatus) {
+                    return (
+                      <ScanHistory
+                        kubeconfigName={scanStatus.kubeconfigName}
+                        contextName={scanStatus.contextName}
+                      />
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+            )}
           </div>
         )}
       </div>
