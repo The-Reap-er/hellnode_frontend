@@ -411,17 +411,20 @@ export default function Dashboard() {
                     </p>
                   </div>
                 </Link>
-                <button className="w-full flex items-center space-x-3 p-3 bg-ui-01 hover:bg-ui-03 rounded transition-colors text-left">
-                  <TrendingUp className="h-5 w-5 text-interactive-01" />
+                <Link
+                  to="/vulnerabilities"
+                  className="w-full flex items-center space-x-3 p-3 bg-ui-01 hover:bg-ui-03 rounded transition-colors text-left"
+                >
+                  <AlertTriangle className="h-5 w-5 text-interactive-01" />
                   <div>
                     <p className="carbon-type-body-01 text-text-01">
-                      View Trends
+                      View Vulnerabilities
                     </p>
                     <p className="carbon-type-label-01 text-text-02">
-                      Security analytics & reports
+                      Analyze security issues across clusters
                     </p>
                   </div>
-                </button>
+                </Link>
               </div>
             </div>
 
