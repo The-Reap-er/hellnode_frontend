@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { MetricCard } from "@/components/ui/metric-card";
+import { ScanHistory } from "@/components/ui/scan-history";
 import {
   Radar,
   Play,
@@ -13,8 +14,9 @@ import {
   Clock,
   Package,
   Loader2,
+  History,
 } from "lucide-react";
-import { VulnerabilityResponse, ClusterVulnerabilityStatus } from "@shared/api";
+import { VulnerabilityResponse, ClusterVulnerabilityStatus, ScanRecord } from "@shared/api";
 import { Badge } from "@/components/ui/badge";
 
 interface ScanStatus {
