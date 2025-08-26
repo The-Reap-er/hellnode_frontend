@@ -338,12 +338,40 @@ export default function Dashboard() {
                 <h2 className="carbon-type-productive-heading-03 text-text-01">
                   Recent Scans
                 </h2>
-                <button className="flex items-center space-x-2 px-4 py-2 bg-interactive-01 text-white rounded carbon-type-body-01 hover:bg-interactive-03 transition-colors">
+                <Link
+                  to="/scanning"
+                  className="flex items-center space-x-2 px-4 py-2 bg-interactive-01 text-white rounded carbon-type-body-01 hover:bg-interactive-03 transition-colors"
+                >
                   <Search className="h-4 w-4" />
                   <span>New Scan</span>
-                </button>
+                </Link>
               </div>
-              <DataTable columns={tableColumns} data={recentScans} />
+              {recentScans.length > 0 ? (
+                <DataTable columns={tableColumns} data={recentScans} />
+              ) : (
+                <div className="bg-layer-01 border border-ui-03 rounded p-8 text-center">
+                  <div className="flex flex-col items-center space-y-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-ui-03">
+                      <Activity className="h-6 w-6 text-text-02" />
+                    </div>
+                    <div>
+                      <h3 className="carbon-type-productive-heading-02 text-text-01 mb-2">
+                        No Recent Scans
+                      </h3>
+                      <p className="carbon-type-body-01 text-text-02 mb-4">
+                        Start scanning your clusters to see scan history here.
+                      </p>
+                      <Link
+                        to="/scanning"
+                        className="inline-flex items-center space-x-2 px-4 py-2 bg-interactive-01 text-white rounded carbon-type-body-01 hover:bg-interactive-03 transition-colors"
+                      >
+                        <Search className="h-4 w-4" />
+                        <span>Start Scanning</span>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
