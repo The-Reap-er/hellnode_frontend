@@ -167,6 +167,10 @@ export default function Scanning() {
         clusterStatuses: allClusterStatuses,
       });
       setScanStatuses(newScanStatuses);
+
+      // Fetch scan history for all contexts
+      await fetchAllScanHistory(validConfigs);
+
       setLastUpdated(new Date());
     } catch (error) {
       console.error("Error fetching context data:", error);
