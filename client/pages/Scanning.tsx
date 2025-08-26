@@ -41,6 +41,56 @@ export default function Scanning() {
   const [error, setError] = useState("");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
+  const fetchScanHistory = async (kubeconfigName: string, contextName: string) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/v1/kubeconfigs/${kubeconfigName}/contexts/${contextName}/scans`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const scans = Array.isArray(data) ? data : [];
+
+        // Update scan history map
+        const newScanHistory = new Map(scanHistory);
+        newScanHistory.set(`${kubeconfigName}-${contextName}`, scans);
+        setScanHistory(newScanHistory);
+
+        return scans;
+      }
+    } catch (error) {
+      console.error(`Error fetching scan history for ${kubeconfigName}/${contextName}:`, error);
+    }
+    return [];
+  };
+
+  const fetchAllScanHistory = async (validConfigs: any[]) => {
+    const newScanHistory = new Map(scanHistory);
+
+    for (const config of validConfigs) {
+      try {
+        const response = await fetch(
+          `http://localhost:8080/api/v1/kubeconfigs/${config.name}/status`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.valid && data.clusterStatuses) {
+            // Fetch scan history for each context
+            for (const cluster of data.clusterStatuses) {
+              const scans = await fetchScanHistory(config.name, cluster.name);
+              newScanHistory.set(`${config.name}-${cluster.name}`, scans);
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`Error fetching scan history for ${config.name}:`, error);
+      }
+    }
+
+    setScanHistory(newScanHistory);
+  };
+
   const fetchContextData = async () => {
     setIsLoading(true);
     setError("");
