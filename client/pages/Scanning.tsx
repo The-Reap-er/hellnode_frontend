@@ -244,9 +244,19 @@ export default function Scanning() {
   const activeScans = Array.from(scanStatuses.values()).filter(
     (status) => status.isScanning,
   ).length;
-  const completedScans = Array.from(scanStatuses.values()).filter(
-    (status) => status.lastScanned,
-  ).length;
+
+  // Calculate completed scans from scan history (sum of total_scans from latest entry for each context)
+  const completedScans = Array.from(scanHistory.values()).reduce((total, contextScans) => {
+    if (contextScans.length > 0) {
+      // Get the latest scan entry which contains the total_scans count
+      const latestScan = contextScans.sort((a, b) =>
+        new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
+      )[0];
+      return total + (latestScan?.total_scans || 0);
+    }
+    return total;
+  }, 0);
+
   const totalImages =
     vulnerabilityData?.clusterStatuses.reduce(
       (sum, cluster) =>
