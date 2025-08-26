@@ -568,6 +568,36 @@ export default function Scanning() {
                 )}
               </div>
             </div>
+
+            {/* Scan History Section */}
+            {selectedContext && (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="carbon-type-productive-heading-03 text-text-01">
+                    Scan History
+                  </h3>
+                  <button
+                    onClick={() => setSelectedContext(null)}
+                    className="flex items-center space-x-2 px-3 py-1 text-text-02 hover:text-text-01 carbon-type-body-01"
+                  >
+                    <span>Close</span>
+                  </button>
+                </div>
+
+                {(() => {
+                  const scanStatus = scanStatuses.get(selectedContext);
+                  if (scanStatus) {
+                    return (
+                      <ScanHistory
+                        kubeconfigName={scanStatus.kubeconfigName}
+                        contextName={scanStatus.contextName}
+                      />
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+            )}
           </div>
         )}
       </div>
