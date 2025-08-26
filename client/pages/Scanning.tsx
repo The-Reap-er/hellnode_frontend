@@ -17,6 +17,7 @@ import {
   History,
 } from "lucide-react";
 import { VulnerabilityResponse, ClusterVulnerabilityStatus, ScanRecord } from "@shared/api";
+import { KubeconfigEntry } from "@shared/kubeconfig";
 import { Badge } from "@/components/ui/badge";
 
 interface ScanStatus {
