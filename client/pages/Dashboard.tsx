@@ -19,34 +19,165 @@ import { VulnerabilityResponse, ScanRecord, Vulnerability } from "@shared/api";
 import { KubeconfigEntry } from "@shared/kubeconfig";
 import { formatDistanceToNow } from "date-fns";
 
+interface RecentScanData {
+  name: string;
+  type: string;
+  status: string;
+  severity: string;
+  vulnerabilities: string;
+  lastScan: string;
+}
+
+interface CriticalVulnData {
+  cve: string;
+  severity: string;
+  component: string;
+  description: string;
+  affected: string;
+}
+
 export default function Dashboard() {
-  // Mock data for the dashboard
+  const [vulnerabilityData, setVulnerabilityData] = useState<VulnerabilityResponse | null>(null);
+  const [allScans, setAllScans] = useState<ScanRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      setError("");
+
+      // Get valid kubeconfigs from localStorage
+      const storedKubeconfigs = localStorage.getItem("kubeconfigs");
+      if (!storedKubeconfigs) {
+        setError("No kubeconfig files found");
+        setIsLoading(false);
+        return;
+      }
+
+      const kubeconfigs: KubeconfigEntry[] = JSON.parse(storedKubeconfigs);
+      const validConfigs = kubeconfigs.filter((k) => k.status === "valid");
+
+      if (validConfigs.length === 0) {
+        setError("No valid kubeconfig files found");
+        setIsLoading(false);
+        return;
+      }
+
+      // Fetch vulnerability data and scan history
+      const allClusterStatuses: any[] = [];
+      const allScanRecords: ScanRecord[] = [];
+
+      for (const config of validConfigs) {
+        try {
+          // Fetch cluster status and vulnerabilities
+          const statusResponse = await fetch(
+            `http://localhost:8080/api/v1/kubeconfigs/${config.name}/status`
+          );
+
+          if (statusResponse.ok) {
+            const statusData = await statusResponse.json();
+            if (statusData.valid && statusData.clusterStatuses) {
+              allClusterStatuses.push(...statusData.clusterStatuses);
+
+              // Fetch scan history for each context
+              for (const cluster of statusData.clusterStatuses) {
+                try {
+                  const scanResponse = await fetch(
+                    `http://localhost:8080/api/v1/kubeconfigs/${config.name}/contexts/${cluster.name}/scans`
+                  );
+
+                  if (scanResponse.ok) {
+                    const scanData = await scanResponse.json();
+                    if (Array.isArray(scanData)) {
+                      allScanRecords.push(...scanData);
+                    }
+                  }
+                } catch (scanError) {
+                  console.error(`Error fetching scans for ${cluster.name}:`, scanError);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching data for ${config.name}:`, error);
+        }
+      }
+
+      setVulnerabilityData({
+        valid: true,
+        message: `Data loaded from ${validConfigs.length} kubeconfig(s)`,
+        clusterStatuses: allClusterStatuses,
+      });
+      setAllScans(allScanRecords);
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      setError("Failed to fetch dashboard data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  // Calculate real metrics
+  const totalScans = allScans.reduce((sum, scan) => sum + (scan.total_scans || 0), 0);
+  const totalClusters = vulnerabilityData?.clusterStatuses.length || 0;
+
+  const totalImages = vulnerabilityData?.clusterStatuses.reduce(
+    (sum, cluster) =>
+      sum +
+      cluster.nodes.reduce(
+        (nodeSum: number, node: any) => nodeSum + node.containerImages.length,
+        0
+      ),
+    0
+  ) || 0;
+
+  // Get all vulnerabilities and count critical ones
+  const allVulnerabilities: Vulnerability[] = [];
+  vulnerabilityData?.clusterStatuses.forEach((cluster) => {
+    cluster.nodes.forEach((node: any) => {
+      node.containerImages.forEach((image: any) => {
+        if (image.vulnerabilities) {
+          allVulnerabilities.push(...image.vulnerabilities);
+        }
+      });
+    });
+  });
+
+  const criticalVulnCount = allVulnerabilities.filter(
+    (vuln) => vuln.severity === "Critical"
+  ).length;
+
   const metrics = [
     {
       title: "Total Scans",
-      value: "1,247",
-      change: "+12%",
-      changeType: "positive" as const,
+      value: totalScans.toLocaleString(),
+      change: isLoading ? "" : "Real data",
+      changeType: "neutral" as const,
       icon: Activity,
     },
     {
       title: "Critical Vulnerabilities",
-      value: "23",
-      change: "-8%",
-      changeType: "positive" as const,
+      value: criticalVulnCount.toString(),
+      change: isLoading ? "" : "Across all clusters",
+      changeType: criticalVulnCount > 0 ? ("negative" as const) : ("positive" as const),
       icon: AlertTriangle,
     },
     {
       title: "Docker Images",
-      value: "456",
-      change: "+5%",
-      changeType: "positive" as const,
+      value: totalImages.toLocaleString(),
+      change: isLoading ? "" : "Total monitored",
+      changeType: "neutral" as const,
       icon: Container,
     },
     {
       title: "K8s Clusters",
-      value: "18",
-      change: "0%",
+      value: totalClusters.toString(),
+      change: isLoading ? "" : "Connected clusters",
       changeType: "neutral" as const,
       icon: Shield,
     },
