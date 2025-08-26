@@ -54,3 +54,24 @@ export interface VulnerabilityResponse {
   message: string;
   clusterStatuses: ClusterVulnerabilityStatus[];
 }
+
+/**
+ * Scan history types
+ */
+export interface ScanRecord {
+  id: string;
+  kubeconfig: string;
+  context: string;
+  status: "completed" | "running" | "failed";
+  total_scans: number;
+  started_at: string;
+  completed_at: string;
+  metadata: {
+    duration: string;
+    images_scanned: number;
+  };
+}
+
+export interface ScanHistoryResponse {
+  scans: ScanRecord[];
+}
