@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { MetricCard } from "@/components/ui/metric-card";
 import { DataTable } from "@/components/ui/data-table";
@@ -12,7 +13,11 @@ import {
   Clock,
   Search,
   Server,
+  Loader2,
 } from "lucide-react";
+import { VulnerabilityResponse, ScanRecord, Vulnerability } from "@shared/api";
+import { KubeconfigEntry } from "@shared/kubeconfig";
+import { formatDistanceToNow } from "date-fns";
 
 export default function Dashboard() {
   // Mock data for the dashboard
