@@ -23,6 +23,8 @@ import {
   X,
   Calendar,
   Info,
+  Send,
+  FileDown,
 } from "lucide-react";
 import {
   VulnerabilityResponse,
