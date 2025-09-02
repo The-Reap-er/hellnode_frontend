@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { MetricCard } from "@/components/ui/metric-card";
 import { DataTable } from "@/components/ui/data-table";
@@ -86,6 +87,7 @@ export default function Vulnerabilities() {
   const [clusterToKubeconfig, setClusterToKubeconfig] = useState<
     Map<string, string>
   >(new Map());
+  const location = useLocation();
 
   const fetchVulnerabilityData = async () => {
     setIsLoading(true);
@@ -181,6 +183,15 @@ export default function Vulnerabilities() {
   useEffect(() => {
     fetchVulnerabilityData();
   }, []);
+
+  // Apply preset filters from URL (e.g., ?image=...)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const imagePreset = params.get("image");
+    if (imagePreset) {
+      setSearchTerm(imagePreset);
+    }
+  }, [location.search]);
 
   // Calculate metrics - deduplicate vulnerabilities and group by clusters
   const getAllVulnerabilities = (): Array<
