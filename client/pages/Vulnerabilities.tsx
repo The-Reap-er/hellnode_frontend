@@ -66,6 +66,8 @@ export default function Vulnerabilities() {
     | null
   >(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [exportCluster, setExportCluster] = useState<string | null>(null);
 
   const fetchVulnerabilityData = async () => {
     setIsLoading(true);
