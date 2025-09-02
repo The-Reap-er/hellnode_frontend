@@ -510,7 +510,7 @@ export default function Scanning() {
             {/* Context Cards */}
             <div>
               <h3 className="carbon-type-productive-heading-03 text-text-01 mb-4">
-                Available Contexts ({Array.from(scanStatuses.keys()).length})
+                Available Contexts ({totalContexts})
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {Array.from(scanStatuses.entries()).map(
