@@ -77,6 +77,7 @@ export default function Scanning() {
 
   const fetchAllScanHistory = async (validConfigs: any[]) => {
     const newScanHistory = new Map(scanHistory);
+    const updatedScanStatuses = new Map(scanStatuses);
 
     for (const config of validConfigs) {
       try {
@@ -90,7 +91,23 @@ export default function Scanning() {
             // Fetch scan history for each context
             for (const cluster of data.clusterStatuses) {
               const scans = await fetchScanHistory(config.name, cluster.name);
-              newScanHistory.set(`${config.name}-${cluster.name}`, scans);
+              const key = `${config.name}-${cluster.name}`;
+              newScanHistory.set(key, scans);
+
+              if (scans.length > 0) {
+                const latest = [...scans].sort(
+                  (a, b) =>
+                    new Date(b.completed_at || b.started_at).getTime() -
+                    new Date(a.completed_at || a.started_at).getTime(),
+                )[0];
+                const prev = updatedScanStatuses.get(key);
+                if (prev) {
+                  updatedScanStatuses.set(key, {
+                    ...prev,
+                    lastScanned: new Date(latest.completed_at || latest.started_at),
+                  });
+                }
+              }
             }
           }
         }
@@ -100,6 +117,7 @@ export default function Scanning() {
     }
 
     setScanHistory(newScanHistory);
+    setScanStatuses(updatedScanStatuses);
   };
 
   const fetchContextData = async () => {
@@ -338,20 +356,29 @@ export default function Scanning() {
     }
 
     if (status.lastScanned) {
-      const timeDiff = new Date().getTime() - status.lastScanned.getTime();
-      const hours = Math.floor(timeDiff / 3600000);
-      const timeAgo = hours < 1 ? "Completed" : `${hours}h ago`;
+      const diffMs = Date.now() - status.lastScanned.getTime();
+      const minutes = Math.floor(diffMs / 60000);
+      const hours = Math.floor(diffMs / 3600000);
+      const days = Math.floor(diffMs / 86400000);
+      const timeAgo =
+        minutes < 1
+          ? "Just now"
+          : minutes < 60
+          ? `${minutes}m ago`
+          : hours < 24
+          ? `${hours}h ago`
+          : `${days}d ago`;
 
       return (
         <Badge className="bg-green-500 text-white">
           <CheckCircle className="h-3 w-3 mr-1" />
-          {timeAgo}
+          Last scanned {timeAgo}
         </Badge>
       );
     }
 
     return (
-      <Badge className="bg-gray-500 text-white">
+      <Badge variant="outline" className="border-transparent bg-gray-500 text-white">
         <Clock className="h-3 w-3 mr-1" />
         Never scanned
       </Badge>
