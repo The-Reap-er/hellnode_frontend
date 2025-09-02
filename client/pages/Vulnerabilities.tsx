@@ -790,7 +790,7 @@ export default function Vulnerabilities() {
 
         {/* Vulnerability Details Drawer */}
         <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-          <SheetContent className="w-[700px] sm:w-[750px] overflow-y-auto">
+          <SheetContent className="w-full sm:w-3/4 sm:max-w-none overflow-y-auto">
             <SheetHeader className="mb-6">
               <SheetTitle className="flex items-center space-x-2">
                 <AlertTriangle className="h-5 w-5 text-support-01" />
