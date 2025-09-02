@@ -347,6 +347,14 @@ export default function DockerImages() {
     },
   ];
 
+  const totalPages = Math.max(1, Math.ceil(filteredImages.length / PAGE_SIZE));
+  const fromIndex = filteredImages.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const toIndex = Math.min(filteredImages.length, currentPage * PAGE_SIZE);
+  const pageImages = useMemo(
+    () => filteredImages.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filteredImages, currentPage],
+  );
+
   const parseImage = (image: string) => {
     let registry = "";
     let repoWithTag = image;
