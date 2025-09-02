@@ -108,6 +108,12 @@ export default function DockerImages() {
     setFilteredImages(filtered);
   }, [dockerImages, searchTerm, registryFilter]);
 
+  // Clamp current page when results change
+  useEffect(() => {
+    const tp = Math.max(1, Math.ceil(filteredImages.length / PAGE_SIZE));
+    if (currentPage > tp) setCurrentPage(tp);
+  }, [filteredImages, currentPage]);
+
   const fetchDockerImages = async () => {
     setIsLoading(true);
     setError("");
