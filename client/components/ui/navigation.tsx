@@ -10,6 +10,8 @@ import {
   Radar,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: Activity },
@@ -63,6 +65,7 @@ export function Navigation() {
 
       {/* User actions */}
       <div className="flex items-center space-x-4">
+        <ThemeToggle />
         <button className="flex h-8 w-8 items-center justify-center rounded bg-ui-01 text-text-02 hover:bg-ui-03 hover:text-text-01 transition-colors">
           <Settings className="h-4 w-4" />
         </button>
