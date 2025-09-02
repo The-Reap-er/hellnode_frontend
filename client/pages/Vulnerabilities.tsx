@@ -383,24 +383,22 @@ export default function Vulnerabilities() {
             </DialogHeader>
 
             {!exportCluster ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {vulnerabilityData?.clusterStatuses.map((cluster) => (
-                  <Card
-                    key={cluster.name}
-                    onClick={() => setExportCluster(cluster.name)}
-                    className={"cursor-pointer bg-ui-01 border border-ui-03 hover:bg-layer-01 hover:border-interactive-01 transition-colors " + (exportCluster === cluster.name ? "ring-2 ring-ring" : "")}
-                  >
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between text-text-01">
-                        <span>{cluster.name}</span>
-                        <Server className="h-4 w-4 text-text-02" />
-                      </CardTitle>
-                      <CardDescription className="text-text-02">{cluster.server}</CardDescription>
-                    </CardHeader>
-                  </Card>
-                ))}
-              </div>
-            ) : (
+            <div className="space-y-3">
+              <label className="carbon-type-body-01 text-text-02">Cluster</label>
+              <Select value={exportCluster ?? undefined} onValueChange={setExportCluster}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a cluster" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vulnerabilityData?.clusterStatuses.map((cluster) => (
+                    <SelectItem key={cluster.name} value={cluster.name}>
+                      {cluster.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Card
                   onClick={() => {
