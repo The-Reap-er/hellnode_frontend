@@ -345,7 +345,7 @@ export default function Scanning() {
   const getScanStatusBadge = (status: ScanStatus) => {
     if (status.isScanning) {
       return (
-        <Badge className="bg-blue-500 text-white">
+        <Badge className="bg-primary text-primary-foreground">
           <Loader2 className="h-3 w-3 mr-1 animate-spin" />
           Scanning
         </Badge>
