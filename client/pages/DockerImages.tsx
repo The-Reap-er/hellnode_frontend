@@ -519,7 +519,8 @@ export default function DockerImages() {
             </div>
           </div>
         ) : filteredImages.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {pageImages.map((img) => {
               const details = imageDetailsMap.get(img.image);
               const totalVulns = details
@@ -606,6 +607,37 @@ export default function DockerImages() {
               );
             })}
           </div>
+          <div className="mt-4 flex items-center justify-between">
+            <div className="text-sm text-text-02">
+              Showing {fromIndex}–{toIndex} of {filteredImages.length} images
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 border border-ui-04 rounded disabled:opacity-50"
+              >
+                Previous
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setCurrentPage(n)}
+                  className={`px-3 py-1 border rounded ${n === currentPage ? 'bg-interactive-01 text-white border-interactive-01' : 'border-ui-04 text-text-01 hover:bg-ui-01'}`}
+                >
+                  {n}
+                </button>
+              ))}
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 border border-ui-04 rounded disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
         ) : dockerImages.length === 0 ? (
           <div className="bg-layer-01 border border-ui-03 rounded p-8 text-center">
             <div className="flex flex-col items-center space-y-4">
