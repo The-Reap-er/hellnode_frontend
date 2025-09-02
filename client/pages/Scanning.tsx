@@ -354,7 +354,7 @@ export default function Scanning() {
 
     if (status.error) {
       return (
-        <Badge className="bg-red-500 text-white">
+        <Badge className="bg-support-01 text-white">
           <AlertTriangle className="h-3 w-3 mr-1" />
           Error
         </Badge>
@@ -376,7 +376,7 @@ export default function Scanning() {
           : `${days}d ago`;
 
       return (
-        <Badge className="bg-green-500 text-white">
+        <Badge className="bg-support-02 text-white">
           <CheckCircle className="h-3 w-3 mr-1" />
           Last scanned {timeAgo}
         </Badge>
