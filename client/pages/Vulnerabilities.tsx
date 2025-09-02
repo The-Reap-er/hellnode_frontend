@@ -348,6 +348,10 @@ export default function Vulnerabilities() {
     },
   ];
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, severityFilter, selectedCluster]);
+
   const vulnerabilityColumns = [
     {
       key: "severity",
