@@ -549,27 +549,27 @@ export default function DockerImages() {
                   <CardContent className="pt-0">
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <div className="p-2 rounded bg-layer-02 border border-ui-03">
-                        <div className="text-text-02">Instances</div>
+                        <div className="text-text-02">CVEs</div>
                         <div className="text-text-01 font-semibold">
-                          {img.totalInstances}
+                          {details ? details.cves.length : 0}
                         </div>
                       </div>
                       <div className="p-2 rounded bg-layer-02 border border-ui-03">
-                        <div className="text-text-02">Clusters</div>
+                        <div className="text-text-02">High+Critical</div>
                         <div className="text-text-01 font-semibold">
-                          {img.clusters.length}
-                        </div>
-                      </div>
-                      <div className="p-2 rounded bg-layer-02 border border-ui-03">
-                        <div className="text-text-02">Nodes</div>
-                        <div className="text-text-01 font-semibold">
-                          {img.nodes.length}
+                          {details ? details.severityCounts.High + details.severityCounts.Critical : 0}
                         </div>
                       </div>
                       <div className="p-2 rounded bg-layer-02 border border-ui-03">
                         <div className="text-text-02">Vulns</div>
                         <div className="text-text-01 font-semibold">
                           {totalVulns}
+                        </div>
+                      </div>
+                      <div className="p-2 rounded bg-layer-02 border border-ui-03">
+                        <div className="text-text-02">Containers</div>
+                        <div className="text-text-01 font-semibold">
+                          {details ? details.names.length : 1}
                         </div>
                       </div>
                     </div>
