@@ -573,7 +573,12 @@ export default function Vulnerabilities() {
                   columns={vulnerabilityColumns}
                   data={filteredVulnerabilities}
                   onRowClick={(row) => {
-                    setSelectedVulnerability(row);
+                    setSelectedVulnerability(
+                      row as Vulnerability & {
+                        clusters: Array<{ clusterName: string; containerName: string }>;
+                        image: string;
+                      },
+                    );
                     setIsDrawerOpen(true);
                   }}
                 />
