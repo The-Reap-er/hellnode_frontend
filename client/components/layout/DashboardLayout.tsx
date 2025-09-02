@@ -1,5 +1,6 @@
 import { Navigation } from "@/components/ui/navigation";
 import { ReactNode } from "react";
+import { Navigation } from "@/components/ui/navigation";
 
 interface DashboardLayoutProps {
   children: ReactNode;
