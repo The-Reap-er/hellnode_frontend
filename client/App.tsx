@@ -20,41 +20,46 @@ import { PlaceholderPage } from "./pages/PlaceholderPage";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+  <ThemeProvider
+    attribute="class"
+    defaultTheme="dark"
+    enableSystem={false}
+    disableTransitionOnChange
+  >
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/scan/:scanId" element={<ScanResults />} />
-          <Route path="/kubernetes" element={<KubeconfigManagement />} />
-          <Route path="/clusters" element={<ClusterDetails />} />
-          <Route path="/docker" element={<DockerImages />} />
-          <Route path="/scanning" element={<Scanning />} />
-          <Route path="/vulnerabilities" element={<Vulnerabilities />} />
-          <Route
-            path="/compliance"
-            element={
-              <PlaceholderPage
-                title="Compliance Dashboard"
-                description="Track compliance with security standards like CIS, PCI DSS, SOC 2, and custom policies across your container and Kubernetes environments."
-              />
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <PlaceholderPage
-                title="Settings & Configuration"
-                description="Configure scan policies, notification settings, integrations, and user management for your security scanning platform."
-              />
-            }
-          />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/scan/:scanId" element={<ScanResults />} />
+            <Route path="/kubernetes" element={<KubeconfigManagement />} />
+            <Route path="/clusters" element={<ClusterDetails />} />
+            <Route path="/docker" element={<DockerImages />} />
+            <Route path="/scanning" element={<Scanning />} />
+            <Route path="/vulnerabilities" element={<Vulnerabilities />} />
+            <Route
+              path="/compliance"
+              element={
+                <PlaceholderPage
+                  title="Compliance Dashboard"
+                  description="Track compliance with security standards like CIS, PCI DSS, SOC 2, and custom policies across your container and Kubernetes environments."
+                />
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <PlaceholderPage
+                  title="Settings & Configuration"
+                  description="Configure scan policies, notification settings, integrations, and user management for your security scanning platform."
+                />
+              }
+            />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
