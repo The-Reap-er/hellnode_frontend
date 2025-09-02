@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { MetricCard } from "@/components/ui/metric-card";
 import {
@@ -86,11 +87,13 @@ export default function DockerImages() {
     let filtered = dockerImages;
 
     if (searchTerm) {
-      filtered = filtered.filter(
-        (img) =>
-          img.image.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          img.name.toLowerCase().includes(searchTerm.toLowerCase()),
-      );
+      const query = searchTerm.toLowerCase().trim();
+      const tokens = query.split(/\s+/).filter(Boolean);
+      filtered = filtered.filter((img) => {
+        const { registry, repository, tag } = parseImage(img.image);
+        const hay = [img.image, img.name, registry, repository, tag].join(" ").toLowerCase();
+        return tokens.every((t) => hay.includes(t));
+      });
     }
 
     if (registryFilter !== "all") {
@@ -336,6 +339,30 @@ export default function DockerImages() {
     },
   ];
 
+  const parseImage = (image: string) => {
+    let registry = "";
+    let repoWithTag = image;
+    if (image.includes("/")) {
+      const first = image.split("/")[0];
+      const rest = image.substring(first.length + 1);
+      if (first.includes(".") || first.includes(":")) {
+        registry = first;
+        repoWithTag = rest;
+      }
+    }
+    let repository = repoWithTag;
+    let tag = "latest";
+    if (repoWithTag.includes("@")) {
+      repository = repoWithTag.split("@")[0];
+    }
+    if (repoWithTag.includes(":")) {
+      const idx = repoWithTag.lastIndexOf(":");
+      repository = repoWithTag.slice(0, idx);
+      tag = repoWithTag.slice(idx + 1);
+    }
+    return { registry, repository, tag };
+  };
+
   const getSeverityColor = (severity: Severity) => {
     switch (severity) {
       case "Critical":
@@ -489,9 +516,14 @@ export default function DockerImages() {
                   onClick={() => openImageDialog(img.image)}
                 >
                   <CardHeader>
-                    <CardTitle className="text-text-01 break-words text-base">
-                      {img.image}
-                    </CardTitle>
+                    <div className="flex items-center justify-between gap-2">
+                      <CardTitle className="text-text-01 break-words text-base">
+                        {parseImage(img.image).repository}
+                      </CardTitle>
+                      <span className="carbon-type-label-01 inline-flex items-center rounded bg-ui-03 px-2 py-0.5 text-text-01 border border-ui-04">
+                        {parseImage(img.image).tag}
+                      </span>
+                    </div>
                     <CardDescription className="text-text-02">
                       {details && details.names.length > 1
                         ? `${details.names.length} containers`
@@ -546,8 +578,12 @@ export default function DockerImages() {
                     ) : null}
                   </CardContent>
                   <CardFooter className="pt-0">
-                    <div className="text-xs text-text-02">
-                      Click for details
+                    <div className="w-full flex items-center justify-between text-xs text-text-02">
+                      <div className="truncate">
+                        Containers: {details ? details.names.slice(0, 2).join(", ") : img.name}
+                        {details && details.names.length > 2 ? ` +${details.names.length - 2}` : ""}
+                      </div>
+                      <div className="ml-2 shrink-0">Details →</div>
                     </div>
                   </CardFooter>
                 </Card>
@@ -642,14 +678,19 @@ export default function DockerImages() {
           <DialogHeader>
             <DialogTitle>Image Details</DialogTitle>
             <DialogDescription>
-              CVEs and affected locations for the selected image
+              Severity distribution and affected locations for the selected image
             </DialogDescription>
           </DialogHeader>
           {selectedDetails ? (
             <div className="space-y-6">
               <div className="space-y-2">
-                <div className="carbon-type-productive-heading-02 text-text-01 break-words">
-                  {selectedDetails.image}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="carbon-type-productive-heading-02 text-text-01 break-words">
+                    {parseImage(selectedDetails.image).repository}
+                  </div>
+                  <span className="carbon-type-label-01 inline-flex items-center rounded bg-ui-03 px-2 py-0.5 text-text-01 border border-ui-04">
+                    {parseImage(selectedDetails.image).tag}
+                  </span>
                 </div>
                 <div className="flex flex-wrap gap-2 text-sm text-text-02">
                   <span>{selectedDetails.totalInstances} instances</span>
@@ -675,40 +716,58 @@ export default function DockerImages() {
                 </div>
               </div>
 
-              {/* CVE List */}
+              {/* Severity Bar Chart */}
               <div className="bg-layer-01 border border-ui-03 rounded p-4">
                 <div className="carbon-type-productive-heading-03 text-text-01 mb-3">
-                  CVEs ({selectedDetails.cves.reduce((a, c) => a + c.count, 0)})
+                  Vulnerability distribution
                 </div>
-                {selectedDetails.cves.length > 0 ? (
-                  <div className="space-y-3 max-h-80 overflow-auto pr-1">
-                    {selectedDetails.cves.map((cve) => (
-                      <div
-                        key={cve.cve}
-                        className="p-3 rounded border border-ui-03 bg-layer-02"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="carbon-type-body-02 text-text-01 font-medium">
-                            {cve.cve}
-                          </div>
-                          <Badge className={getSeverityColor(cve.severity)}>
-                            {cve.severity}
-                          </Badge>
-                        </div>
-                        <div className="mt-2 text-xs text-text-02 flex flex-wrap gap-2">
-                          <span>{cve.count} occurrence(s)</span>
-                          <span>• {cve.clusters.length} cluster(s)</span>
-                          <span>• {cve.nodes.length} node(s)</span>
-                          <span>• {cve.containers.length} container(s)</span>
-                        </div>
+                {(() => {
+                  const total = Object.values(selectedDetails.severityCounts).reduce((a, b) => a + b, 0);
+                  const entries = [
+                    { key: "Critical" as Severity, color: "bg-support-01" },
+                    { key: "High" as Severity, color: "bg-orange-500" },
+                    { key: "Medium" as Severity, color: "bg-yellow-500" },
+                    { key: "Low" as Severity, color: "bg-primary" },
+                  ];
+                  return total > 0 ? (
+                    <div className="space-y-3">
+                      <div className="w-full h-4 flex rounded overflow-hidden border border-ui-03 bg-layer-02">
+                        {entries.map((e) => {
+                          const val = selectedDetails.severityCounts[e.key];
+                          return (
+                            <div
+                              key={e.key}
+                              className={`${e.color}`}
+                              style={{ width: `${(val / total) * 100}%` }}
+                              title={`${e.key}: ${val}`}
+                            />
+                          );
+                        })}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-sm text-text-02">
-                    No CVEs reported for this image.
-                  </div>
-                )}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+                        {entries.map((e) => (
+                          <div key={e.key} className="flex items-center gap-2">
+                            <span className={`inline-block h-3 w-3 rounded ${e.color}`} />
+                            <span className="text-text-02">{e.key}:</span>
+                            <span className="text-text-01 font-medium">
+                              {selectedDetails.severityCounts[e.key]}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-text-02">No vulnerabilities.</div>
+                  );
+                })()}
+                <div className="mt-4">
+                  <Link
+                    to={`/vulnerabilities?image=${encodeURIComponent(selectedDetails.image)}`}
+                    className="inline-flex items-center px-3 py-2 border border-ui-04 text-text-01 rounded carbon-type-body-01 hover:bg-ui-01 transition-colors text-sm"
+                  >
+                    View in Vulnerabilities →
+                  </Link>
+                </div>
               </div>
 
               {/* Locations */}
