@@ -372,6 +372,74 @@ export default function Vulnerabilities() {
   return (
     <DashboardLayout>
       <div className="col-span-full">
+        {/* Export Report Modal */}
+        <Dialog open={isExportOpen} onOpenChange={setIsExportOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Export Report</DialogTitle>
+              <DialogDescription>
+                {exportCluster ? "Choose where to send the report" : "Select a cluster to export a report for"}
+              </DialogDescription>
+            </DialogHeader>
+
+            {!exportCluster ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {vulnerabilityData?.clusterStatuses.map((cluster) => (
+                  <Card
+                    key={cluster.name}
+                    onClick={() => setExportCluster(cluster.name)}
+                    className={"cursor-pointer border-ui-03 hover:border-interactive-01 " + (exportCluster === cluster.name ? "ring-2 ring-ring" : "")}
+                  >
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between text-text-01">
+                        <span>{cluster.name}</span>
+                        <Server className="h-4 w-4 text-text-02" />
+                      </CardTitle>
+                      <CardDescription className="text-text-02">{cluster.server}</CardDescription>
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Card
+                  onClick={() => {
+                    console.log("Export to DefectDojo for", exportCluster);
+                    setIsExportOpen(false);
+                  }}
+                  className="cursor-pointer hover:border-interactive-01"
+                >
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-text-01">
+                      <Send className="h-4 w-4" /> DefectDojo
+                    </CardTitle>
+                    <CardDescription className="text-text-02">Send the report to DefectDojo</CardDescription>
+                  </CardHeader>
+                </Card>
+                <Card
+                  onClick={() => {
+                    console.log("Export PDF for", exportCluster);
+                    setIsExportOpen(false);
+                  }}
+                  className="cursor-pointer hover:border-interactive-01"
+                >
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-text-01">
+                      <FileDown className="h-4 w-4" /> PDF Report
+                    </CardTitle>
+                    <CardDescription className="text-text-02">Download a PDF report</CardDescription>
+                  </CardHeader>
+                </Card>
+              </div>
+            )}
+
+            <div className="mt-4 flex justify-between">
+              <Button variant="secondary" onClick={() => (exportCluster ? setExportCluster(null) : setIsExportOpen(false))}>
+                {exportCluster ? "Back" : "Close"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
