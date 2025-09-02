@@ -520,7 +520,7 @@ export default function DockerImages() {
           </div>
         ) : filteredImages.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredImages.map((img) => {
+            {pageImages.map((img) => {
               const details = imageDetailsMap.get(img.image);
               const totalVulns = details
                 ? details.cves.reduce((acc, c) => acc + c.count, 0)
