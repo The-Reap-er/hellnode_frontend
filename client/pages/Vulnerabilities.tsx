@@ -267,7 +267,7 @@ export default function Vulnerabilities() {
       case "Medium":
         return "bg-yellow-500 text-black";
       case "Low":
-        return "bg-blue-500 text-white";
+        return "bg-primary text-primary-foreground";
       default:
         return "bg-gray-500 text-white";
     }
@@ -451,7 +451,7 @@ export default function Vulnerabilities() {
                 <div className="carbon-type-label-01 text-text-02">Medium</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-500 mb-1">
+                <div className="text-2xl font-bold text-primary mb-1">
                   {lowCount}
                 </div>
                 <div className="carbon-type-label-01 text-text-02">Low</div>
