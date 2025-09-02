@@ -244,8 +244,6 @@ export default function Vulnerabilities() {
   };
 
   const allVulnerabilities = getAllVulnerabilities();
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 20;
 
   // Sort vulnerabilities by severity (Critical > High > Medium > Low)
   const getSeverityOrder = (severity: string): number => {
@@ -347,10 +345,6 @@ export default function Vulnerabilities() {
       icon: Server,
     },
   ];
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, severityFilter, selectedCluster]);
 
   const vulnerabilityColumns = [
     {
@@ -753,45 +747,22 @@ export default function Vulnerabilities() {
                 All Vulnerabilities ({filteredVulnerabilities.length})
               </h3>
               {filteredVulnerabilities.length > 0 ? (
-                <>
-                  <DataTable
-                    columns={vulnerabilityColumns}
-                    data={filteredVulnerabilities.slice((currentPage - 1) * pageSize, (currentPage - 1) * pageSize + pageSize)}
-                    onRowClick={(row) => {
-                      setSelectedVulnerability(
-                        row as Vulnerability & {
-                          clusters: Array<{
-                            clusterName: string;
-                            containerName: string;
-                          }>;
-                          image: string;
-                        },
-                      );
-                      setIsDrawerOpen(true);
-                    }}
-                  />
-                  <div className="flex items-center justify-between mt-4">
-                    <div className="carbon-type-label-01 text-text-02">
-                      Showing {Math.min((currentPage - 1) * pageSize + 1, filteredVulnerabilities.length)}-
-                      {Math.min(currentPage * pageSize, filteredVulnerabilities.length)} of {filteredVulnerabilities.length}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" disabled={currentPage === 1} onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}>
-                        Previous
-                      </Button>
-                      <span className="carbon-type-label-01 text-text-02">
-                        Page {currentPage} of {Math.max(1, Math.ceil(filteredVulnerabilities.length / pageSize))}
-                      </span>
-                      <Button
-                        variant="outline"
-                        disabled={currentPage >= Math.ceil(filteredVulnerabilities.length / pageSize)}
-                        onClick={() => setCurrentPage((p) => Math.min(Math.ceil(filteredVulnerabilities.length / pageSize), p + 1))}
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                </>
+                <DataTable
+                  columns={vulnerabilityColumns}
+                  data={filteredVulnerabilities}
+                  onRowClick={(row) => {
+                    setSelectedVulnerability(
+                      row as Vulnerability & {
+                        clusters: Array<{
+                          clusterName: string;
+                          containerName: string;
+                        }>;
+                        image: string;
+                      },
+                    );
+                    setIsDrawerOpen(true);
+                  }}
+                />
               ) : (
                 <div className="bg-layer-01 border border-ui-03 rounded p-8 text-center">
                   <div className="flex flex-col items-center space-y-4">
