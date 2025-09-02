@@ -76,6 +76,8 @@ export default function DockerImages() {
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const PAGE_SIZE = 12;
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Load and aggregate docker images from all clusters
   useEffect(() => {
