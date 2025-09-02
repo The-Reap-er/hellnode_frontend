@@ -5,6 +5,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
 import {
   Shield,
   AlertTriangle,
@@ -70,6 +71,7 @@ export default function Vulnerabilities() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [exportCluster, setExportCluster] = useState<string | null>(null);
+  const [clusterToKubeconfig, setClusterToKubeconfig] = useState<Map<string, string>>(new Map());
 
   const fetchVulnerabilityData = async () => {
     setIsLoading(true);
@@ -99,6 +101,7 @@ export default function Vulnerabilities() {
 
       // Fetch data from all valid kubeconfigs
       const allClusterStatuses: any[] = [];
+      const clusterMap = new Map<string, string>();
       let hasValidData = false;
 
       for (const config of validConfigs) {
@@ -110,7 +113,10 @@ export default function Vulnerabilities() {
           if (response.ok) {
             const data = await response.json();
             if (data.valid && data.clusterStatuses) {
-              allClusterStatuses.push(...data.clusterStatuses);
+              data.clusterStatuses.forEach((cs: any) => {
+                allClusterStatuses.push(cs);
+                clusterMap.set(cs.name, config.name);
+              });
               hasValidData = true;
             }
           }
@@ -148,6 +154,7 @@ export default function Vulnerabilities() {
       };
 
       setVulnerabilityData(transformedData);
+      setClusterToKubeconfig(clusterMap);
       setLastUpdated(new Date());
     } catch (error) {
       console.error("Error fetching vulnerability data:", error);
@@ -401,9 +408,21 @@ export default function Vulnerabilities() {
           ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Card
-                  onClick={() => {
-                    console.log("Export to DefectDojo for", exportCluster);
-                    setIsExportOpen(false);
+                  onClick={async () => {
+                    if (!exportCluster) return;
+                    const kubeconfig = clusterToKubeconfig.get(exportCluster);
+                    if (!kubeconfig) {
+                      toast({ title: "Cluster not found", description: "Unable to map selected cluster to kubeconfig.", variant: "destructive" as any });
+                      return;
+                    }
+                    try {
+                      const res = await fetch(`http://localhost:8080/api/v1/kubeconfigs/${encodeURIComponent(kubeconfig)}/defect-report`, { method: "POST" });
+                      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                      toast({ title: "Sent to DefectDojo", description: `${exportCluster} report queued.` });
+                      setIsExportOpen(false);
+                    } catch (e) {
+                      toast({ title: "Failed to send", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" as any });
+                    }
                   }}
                   className="cursor-pointer bg-ui-01 border border-ui-03 hover:bg-layer-01 hover:border-interactive-01 transition-colors"
                 >
@@ -415,9 +434,30 @@ export default function Vulnerabilities() {
                   </CardHeader>
                 </Card>
                 <Card
-                  onClick={() => {
-                    console.log("Export PDF for", exportCluster);
-                    setIsExportOpen(false);
+                  onClick={async () => {
+                    if (!exportCluster) return;
+                    const kubeconfig = clusterToKubeconfig.get(exportCluster);
+                    if (!kubeconfig) {
+                      toast({ title: "Cluster not found", description: "Unable to map selected cluster to kubeconfig.", variant: "destructive" as any });
+                      return;
+                    }
+                    try {
+                      const res = await fetch(`http://localhost:8080/api/v1/kubeconfigs/${encodeURIComponent(kubeconfig)}/pdf-report`, { method: "POST" });
+                      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                      const blob = await res.blob();
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `${exportCluster}-vulnerabilities.pdf`;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                      URL.revokeObjectURL(url);
+                      toast({ title: "PDF downloading", description: `${exportCluster} report generated.` });
+                      setIsExportOpen(false);
+                    } catch (e) {
+                      toast({ title: "PDF export failed", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" as any });
+                    }
                   }}
                   className="cursor-pointer bg-ui-01 border border-ui-03 hover:bg-layer-01 hover:border-interactive-01 transition-colors"
                 >
