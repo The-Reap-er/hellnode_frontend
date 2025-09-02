@@ -93,7 +93,9 @@ export default function DockerImages() {
       const tokens = query.split(/\s+/).filter(Boolean);
       filtered = filtered.filter((img) => {
         const { registry, repository, tag } = parseImage(img.image);
-        const hay = [img.image, img.name, registry, repository, tag].join(" ").toLowerCase();
+        const hay = [img.image, img.name, registry, repository, tag]
+          .join(" ")
+          .toLowerCase();
         return tokens.every((t) => hay.includes(t));
       });
     }
@@ -348,10 +350,15 @@ export default function DockerImages() {
   ];
 
   const totalPages = Math.max(1, Math.ceil(filteredImages.length / PAGE_SIZE));
-  const fromIndex = filteredImages.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const fromIndex =
+    filteredImages.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
   const toIndex = Math.min(filteredImages.length, currentPage * PAGE_SIZE);
   const pageImages = useMemo(
-    () => filteredImages.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    () =>
+      filteredImages.slice(
+        (currentPage - 1) * PAGE_SIZE,
+        currentPage * PAGE_SIZE,
+      ),
     [filteredImages, currentPage],
   );
 
@@ -496,7 +503,8 @@ export default function DockerImages() {
             <div className="flex items-end">
               <div className="bg-ui-03 px-3 py-2 rounded">
                 <span className="carbon-type-body-01 text-text-01">
-                  Showing {fromIndex}–{toIndex} of {filteredImages.length} images
+                  Showing {fromIndex}–{toIndex} of {filteredImages.length}{" "}
+                  images
                 </span>
               </div>
             </div>
@@ -521,123 +529,135 @@ export default function DockerImages() {
         ) : filteredImages.length > 0 ? (
           <div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {pageImages.map((img) => {
-              const details = imageDetailsMap.get(img.image);
-              const totalVulns = details
-                ? details.cves.reduce((acc, c) => acc + c.count, 0)
-                : 0;
-              return (
-                <Card
-                  key={img.image}
-                  className="bg-layer-01 border border-ui-03 hover:border-interactive-01 transition-colors cursor-pointer"
-                  onClick={() => openImageDialog(img.image)}
-                >
-                  <CardHeader>
-                    <div className="flex items-center justify-between gap-2">
-                      <CardTitle className="text-text-01 break-words text-base">
-                        {parseImage(img.image).repository}
-                      </CardTitle>
-                      <span className="carbon-type-label-01 inline-flex items-center rounded bg-ui-03 px-2 py-0.5 text-text-01 border border-ui-04">
-                        {parseImage(img.image).tag}
-                      </span>
-                    </div>
-                    <CardDescription className="text-text-02">
-                      {details && details.names.length > 1
-                        ? `${details.names.length} containers`
-                        : img.name}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div className="p-2 rounded bg-layer-02 border border-ui-03">
-                        <div className="text-text-02">CVEs</div>
-                        <div className="text-text-01 font-semibold">
-                          {details ? details.cves.length : 0}
+              {pageImages.map((img) => {
+                const details = imageDetailsMap.get(img.image);
+                const totalVulns = details
+                  ? details.cves.reduce((acc, c) => acc + c.count, 0)
+                  : 0;
+                return (
+                  <Card
+                    key={img.image}
+                    className="bg-layer-01 border border-ui-03 hover:border-interactive-01 transition-colors cursor-pointer"
+                    onClick={() => openImageDialog(img.image)}
+                  >
+                    <CardHeader>
+                      <div className="flex items-center justify-between gap-2">
+                        <CardTitle className="text-text-01 break-words text-base">
+                          {parseImage(img.image).repository}
+                        </CardTitle>
+                        <span className="carbon-type-label-01 inline-flex items-center rounded bg-ui-03 px-2 py-0.5 text-text-01 border border-ui-04">
+                          {parseImage(img.image).tag}
+                        </span>
+                      </div>
+                      <CardDescription className="text-text-02">
+                        {details && details.names.length > 1
+                          ? `${details.names.length} containers`
+                          : img.name}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="p-2 rounded bg-layer-02 border border-ui-03">
+                          <div className="text-text-02">CVEs</div>
+                          <div className="text-text-01 font-semibold">
+                            {details ? details.cves.length : 0}
+                          </div>
+                        </div>
+                        <div className="p-2 rounded bg-layer-02 border border-ui-03">
+                          <div className="text-text-02">High+Critical</div>
+                          <div className="text-text-01 font-semibold">
+                            {details
+                              ? details.severityCounts.High +
+                                details.severityCounts.Critical
+                              : 0}
+                          </div>
+                        </div>
+                        <div className="p-2 rounded bg-layer-02 border border-ui-03">
+                          <div className="text-text-02">Vulns</div>
+                          <div className="text-text-01 font-semibold">
+                            {totalVulns}
+                          </div>
+                        </div>
+                        <div className="p-2 rounded bg-layer-02 border border-ui-03">
+                          <div className="text-text-02">Containers</div>
+                          <div className="text-text-01 font-semibold">
+                            {details ? details.names.length : 1}
+                          </div>
                         </div>
                       </div>
-                      <div className="p-2 rounded bg-layer-02 border border-ui-03">
-                        <div className="text-text-02">High+Critical</div>
-                        <div className="text-text-01 font-semibold">
-                          {details ? details.severityCounts.High + details.severityCounts.Critical : 0}
+                      {details && details.cves.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {(Object.keys(details.severityCounts) as Severity[])
+                            .filter((sev) => details.severityCounts[sev] > 0)
+                            .map((sev) => (
+                              <Badge
+                                key={sev}
+                                className={`${getSeverityColor(sev)} text-xs`}
+                              >
+                                {sev}: {details.severityCounts[sev]}
+                              </Badge>
+                            ))}
                         </div>
-                      </div>
-                      <div className="p-2 rounded bg-layer-02 border border-ui-03">
-                        <div className="text-text-02">Vulns</div>
-                        <div className="text-text-01 font-semibold">
-                          {totalVulns}
+                      )}
+                      {!details || details.cves.length === 0 ? (
+                        <div className="mt-3 inline-flex items-center gap-2 text-xs text-text-02">
+                          <Shield className="h-3 w-3" /> No vulnerabilities
                         </div>
-                      </div>
-                      <div className="p-2 rounded bg-layer-02 border border-ui-03">
-                        <div className="text-text-02">Containers</div>
-                        <div className="text-text-01 font-semibold">
-                          {details ? details.names.length : 1}
+                      ) : null}
+                    </CardContent>
+                    <CardFooter className="pt-0">
+                      <div className="w-full flex items-center justify-between text-xs text-text-02">
+                        <div className="truncate">
+                          Containers:{" "}
+                          {details
+                            ? details.names.slice(0, 2).join(", ")
+                            : img.name}
+                          {details && details.names.length > 2
+                            ? ` +${details.names.length - 2}`
+                            : ""}
                         </div>
+                        <div className="ml-2 shrink-0">Details →</div>
                       </div>
-                    </div>
-                    {details && details.cves.length > 0 && (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {(Object.keys(details.severityCounts) as Severity[])
-                          .filter((sev) => details.severityCounts[sev] > 0)
-                          .map((sev) => (
-                            <Badge
-                              key={sev}
-                              className={`${getSeverityColor(sev)} text-xs`}
-                            >
-                              {sev}: {details.severityCounts[sev]}
-                            </Badge>
-                          ))}
-                      </div>
-                    )}
-                    {!details || details.cves.length === 0 ? (
-                      <div className="mt-3 inline-flex items-center gap-2 text-xs text-text-02">
-                        <Shield className="h-3 w-3" /> No vulnerabilities
-                      </div>
-                    ) : null}
-                  </CardContent>
-                  <CardFooter className="pt-0">
-                    <div className="w-full flex items-center justify-between text-xs text-text-02">
-                      <div className="truncate">
-                        Containers: {details ? details.names.slice(0, 2).join(", ") : img.name}
-                        {details && details.names.length > 2 ? ` +${details.names.length - 2}` : ""}
-                      </div>
-                      <div className="ml-2 shrink-0">Details →</div>
-                    </div>
-                  </CardFooter>
-                </Card>
-              );
-            })}
-          </div>
-          <div className="mt-4 flex items-center justify-between">
-            <div className="text-sm text-text-02">
-              Showing {fromIndex}–{toIndex} of {filteredImages.length} images
+                    </CardFooter>
+                  </Card>
+                );
+              })}
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1 border border-ui-04 rounded disabled:opacity-50"
-              >
-                Previous
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+            <div className="mt-4 flex items-center justify-between">
+              <div className="text-sm text-text-02">
+                Showing {fromIndex}–{toIndex} of {filteredImages.length} images
+              </div>
+              <div className="flex items-center gap-2">
                 <button
-                  key={n}
-                  onClick={() => setCurrentPage(n)}
-                  className={`px-3 py-1 border rounded ${n === currentPage ? 'bg-interactive-01 text-white border-interactive-01' : 'border-ui-04 text-text-01 hover:bg-ui-01'}`}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 border border-ui-04 rounded disabled:opacity-50"
                 >
-                  {n}
+                  Previous
                 </button>
-              ))}
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 border border-ui-04 rounded disabled:opacity-50"
-              >
-                Next
-              </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (n) => (
+                    <button
+                      key={n}
+                      onClick={() => setCurrentPage(n)}
+                      className={`px-3 py-1 border rounded ${n === currentPage ? "bg-interactive-01 text-white border-interactive-01" : "border-ui-04 text-text-01 hover:bg-ui-01"}`}
+                    >
+                      {n}
+                    </button>
+                  ),
+                )}
+                <button
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 border border-ui-04 rounded disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </div>
-        </div>
         ) : dockerImages.length === 0 ? (
           <div className="bg-layer-01 border border-ui-03 rounded p-8 text-center">
             <div className="flex flex-col items-center space-y-4">
@@ -726,7 +746,8 @@ export default function DockerImages() {
           <DialogHeader>
             <DialogTitle>Image Details</DialogTitle>
             <DialogDescription>
-              Severity distribution and affected locations for the selected image
+              Severity distribution and affected locations for the selected
+              image
             </DialogDescription>
           </DialogHeader>
           {selectedDetails ? (
@@ -744,7 +765,9 @@ export default function DockerImages() {
                   <span>{selectedDetails.totalInstances} instances</span>
                   <span>• {selectedDetails.clusters.length} clusters</span>
                   <span>• {selectedDetails.nodes.length} nodes</span>
-                  <span>• {selectedDetails.names.length} container name(s)</span>
+                  <span>
+                    • {selectedDetails.names.length} container name(s)
+                  </span>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {(Object.keys(selectedDetails.severityCounts) as Severity[])
@@ -770,7 +793,9 @@ export default function DockerImages() {
                   Vulnerability distribution
                 </div>
                 {(() => {
-                  const total = Object.values(selectedDetails.severityCounts).reduce((a, b) => a + b, 0);
+                  const total = Object.values(
+                    selectedDetails.severityCounts,
+                  ).reduce((a, b) => a + b, 0);
                   const entries = [
                     { key: "Critical" as Severity, color: "bg-support-01" },
                     { key: "High" as Severity, color: "bg-orange-500" },
@@ -795,7 +820,9 @@ export default function DockerImages() {
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
                         {entries.map((e) => (
                           <div key={e.key} className="flex items-center gap-2">
-                            <span className={`inline-block h-3 w-3 rounded ${e.color}`} />
+                            <span
+                              className={`inline-block h-3 w-3 rounded ${e.color}`}
+                            />
                             <span className="text-text-02">{e.key}:</span>
                             <span className="text-text-01 font-medium">
                               {selectedDetails.severityCounts[e.key]}
@@ -805,7 +832,9 @@ export default function DockerImages() {
                       </div>
                     </div>
                   ) : (
-                    <div className="text-sm text-text-02">No vulnerabilities.</div>
+                    <div className="text-sm text-text-02">
+                      No vulnerabilities.
+                    </div>
                   );
                 })()}
                 <div className="mt-4">
