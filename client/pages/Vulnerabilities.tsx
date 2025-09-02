@@ -44,6 +44,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import { ClusterVulnerabilityDonut } from "@/components/charts/ClusterVulnerabilityDonut";
 
 export default function Vulnerabilities() {
   const [vulnerabilityData, setVulnerabilityData] =
