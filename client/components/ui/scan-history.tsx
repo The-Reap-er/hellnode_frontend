@@ -54,7 +54,7 @@ export function ScanHistory({ kubeconfigName, contextName }: ScanHistoryProps) {
         );
       case "running":
         return (
-          <Badge className="bg-blue-500 text-white">
+          <Badge className="bg-primary text-primary-foreground">
             <Loader2 className="h-3 w-3 mr-1 animate-spin" />
             Running
           </Badge>
