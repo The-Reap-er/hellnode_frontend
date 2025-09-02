@@ -459,6 +459,35 @@ export default function Vulnerabilities() {
           </div>
         </div>
 
+        {/* Per-Cluster Vulnerabilities */}
+        {vulnerabilityData && vulnerabilityData.clusterStatuses.length > 0 && (
+          <div className="mb-8">
+            <div className="bg-layer-01 border border-ui-03 rounded p-6">
+              <h3 className="carbon-type-productive-heading-02 text-text-01 mb-2">
+                Vulnerabilities by Cluster
+              </h3>
+              <p className="carbon-type-body-01 text-text-02 mb-4">
+                Each chart shows the distribution of severities per cluster. The center number is the total vulnerabilities.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {vulnerabilityData.clusterStatuses.map((cluster) => (
+                  <div
+                    key={cluster.name}
+                    className="p-4 rounded border border-ui-03 bg-layer-02"
+                  >
+                    <div className="mb-3 flex items-center justify-between">
+                      <div className="carbon-type-productive-heading-02 text-text-01">
+                        {cluster.name}
+                      </div>
+                    </div>
+                    <ClusterVulnerabilityDonut cluster={cluster} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {isLoading && allVulnerabilities.length === 0 ? (
           <div className="bg-layer-01 border border-ui-03 rounded p-8 text-center">
             <div className="flex flex-col items-center space-y-4">
