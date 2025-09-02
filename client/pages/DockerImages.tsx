@@ -496,7 +496,7 @@ export default function DockerImages() {
             <div className="flex items-end">
               <div className="bg-ui-03 px-3 py-2 rounded">
                 <span className="carbon-type-body-01 text-text-01">
-                  Showing {fromIndex}{toIndex} of {filteredImages.length} images
+                  Showing {fromIndex}–{toIndex} of {filteredImages.length} images
                 </span>
               </div>
             </div>
