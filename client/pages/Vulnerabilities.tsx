@@ -388,7 +388,7 @@ export default function Vulnerabilities() {
                   <Card
                     key={cluster.name}
                     onClick={() => setExportCluster(cluster.name)}
-                    className={"cursor-pointer border-ui-03 hover:border-interactive-01 " + (exportCluster === cluster.name ? "ring-2 ring-ring" : "")}
+                    className={"cursor-pointer bg-ui-01 border border-ui-03 hover:bg-layer-01 hover:border-interactive-01 transition-colors " + (exportCluster === cluster.name ? "ring-2 ring-ring" : "")}
                   >
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between text-text-01">
@@ -407,7 +407,7 @@ export default function Vulnerabilities() {
                     console.log("Export to DefectDojo for", exportCluster);
                     setIsExportOpen(false);
                   }}
-                  className="cursor-pointer hover:border-interactive-01"
+                  className="cursor-pointer bg-ui-01 border border-ui-03 hover:bg-layer-01 hover:border-interactive-01 transition-colors"
                 >
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-text-01">
@@ -421,7 +421,7 @@ export default function Vulnerabilities() {
                     console.log("Export PDF for", exportCluster);
                     setIsExportOpen(false);
                   }}
-                  className="cursor-pointer hover:border-interactive-01"
+                  className="cursor-pointer bg-ui-01 border border-ui-03 hover:bg-layer-01 hover:border-interactive-01 transition-colors"
                 >
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-text-01">
@@ -434,7 +434,7 @@ export default function Vulnerabilities() {
             )}
 
             <div className="mt-4 flex justify-between">
-              <Button variant="secondary" onClick={() => (exportCluster ? setExportCluster(null) : setIsExportOpen(false))}>
+              <Button variant="outline" onClick={() => (exportCluster ? setExportCluster(null) : setIsExportOpen(false))}>
                 {exportCluster ? "Back" : "Close"}
               </Button>
             </div>
