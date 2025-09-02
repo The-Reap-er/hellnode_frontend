@@ -77,7 +77,7 @@ export default function Scanning() {
 
   const fetchAllScanHistory = async (validConfigs: any[]) => {
     const newScanHistory = new Map(scanHistory);
-    const updatedScanStatuses = new Map(scanStatuses);
+    const lastScannedUpdates = new Map<string, Date>();
 
     for (const config of validConfigs) {
       try {
@@ -100,13 +100,10 @@ export default function Scanning() {
                     new Date(b.completed_at || b.started_at).getTime() -
                     new Date(a.completed_at || a.started_at).getTime(),
                 )[0];
-                const prev = updatedScanStatuses.get(key);
-                if (prev) {
-                  updatedScanStatuses.set(key, {
-                    ...prev,
-                    lastScanned: new Date(latest.completed_at || latest.started_at),
-                  });
-                }
+                lastScannedUpdates.set(
+                  key,
+                  new Date(latest.completed_at || latest.started_at),
+                );
               }
             }
           }
@@ -117,7 +114,16 @@ export default function Scanning() {
     }
 
     setScanHistory(newScanHistory);
-    setScanStatuses(updatedScanStatuses);
+    setScanStatuses((prev) => {
+      const updated = new Map(prev);
+      lastScannedUpdates.forEach((date, key) => {
+        const prevStatus = updated.get(key);
+        if (prevStatus) {
+          updated.set(key, { ...prevStatus, lastScanned: date });
+        }
+      });
+      return updated;
+    });
   };
 
   const fetchContextData = async () => {
