@@ -8,8 +8,10 @@ import {
   CheckCircle,
   Server,
   Radar,
+  Search,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: Activity },
@@ -31,10 +33,10 @@ export function Navigation() {
       <div className="flex items-center space-x-8">
         <Link to="/" className="flex items-center space-x-3">
           <div className="flex h-8 w-8 items-center justify-center rounded bg-interactive-01">
-            <Shield className="h-5 w-5 text-white" />
+            <Search className="h-5 w-5 text-white" />
           </div>
           <span className="carbon-type-productive-heading-03 text-text-01">
-            SecureScan
+            Lens
           </span>
         </Link>
 
@@ -63,6 +65,7 @@ export function Navigation() {
 
       {/* User actions */}
       <div className="flex items-center space-x-4">
+        <ThemeToggle />
         <button className="flex h-8 w-8 items-center justify-center rounded bg-ui-01 text-text-02 hover:bg-ui-03 hover:text-text-01 transition-colors">
           <Settings className="h-4 w-4" />
         </button>

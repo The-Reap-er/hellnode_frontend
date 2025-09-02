@@ -1,6 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface TableColumn {
   key: string;
@@ -18,6 +19,7 @@ interface DataTableProps {
   data: TableRow[];
   className?: string;
   onRowClick?: (row: TableRow, index: number) => void;
+  pageSize?: number; // defaults to 10
 }
 
 function getSeverityIcon(severity: string) {
@@ -62,7 +64,19 @@ export function DataTable({
   data,
   className,
   onRowClick,
+  pageSize = 10,
 }: DataTableProps) {
+  const [currentPage, setCurrentPage] = React.useState(1);
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [data, pageSize]);
+
+  const total = data.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const start = (currentPage - 1) * pageSize;
+  const end = Math.min(start + pageSize, total);
+  const pageData = data.slice(start, end);
+
   return (
     <div
       className={cn(
@@ -88,14 +102,14 @@ export function DataTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-ui-03">
-            {data.map((row, index) => (
+            {pageData.map((row, index) => (
               <tr
                 key={index}
                 className={cn(
                   "hover:bg-layer-02 transition-colors",
                   onRowClick && "cursor-pointer",
                 )}
-                onClick={() => onRowClick?.(row, index)}
+                onClick={() => onRowClick?.(row, start + index)}
               >
                 {columns.map((column) => (
                   <td
@@ -139,6 +153,30 @@ export function DataTable({
             ))}
           </tbody>
         </table>
+      </div>
+      <div className="flex items-center justify-between p-3 border-t border-ui-03">
+        <div className="carbon-type-label-01 text-text-02">
+          Showing {total === 0 ? 0 : start + 1}-{end} of {total}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+          >
+            Previous
+          </Button>
+          <span className="carbon-type-label-01 text-text-02">
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            disabled={currentPage >= totalPages}
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+          >
+            Next
+          </Button>
+        </div>
       </div>
     </div>
   );

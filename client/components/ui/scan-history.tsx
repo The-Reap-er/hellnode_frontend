@@ -47,21 +47,21 @@ export function ScanHistory({ kubeconfigName, contextName }: ScanHistoryProps) {
     switch (status) {
       case "completed":
         return (
-          <Badge className="bg-green-500 text-white">
+          <Badge className="bg-support-02 text-white">
             <CheckCircle className="h-3 w-3 mr-1" />
             Completed
           </Badge>
         );
       case "running":
         return (
-          <Badge className="bg-blue-500 text-white">
+          <Badge className="bg-primary text-primary-foreground">
             <Loader2 className="h-3 w-3 mr-1 animate-spin" />
             Running
           </Badge>
         );
       case "failed":
         return (
-          <Badge className="bg-red-500 text-white">
+          <Badge className="bg-support-01 text-white">
             <XCircle className="h-3 w-3 mr-1" />
             Failed
           </Badge>

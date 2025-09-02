@@ -77,6 +77,7 @@ export default function Scanning() {
 
   const fetchAllScanHistory = async (validConfigs: any[]) => {
     const newScanHistory = new Map(scanHistory);
+    const lastScannedUpdates = new Map<string, Date>();
 
     for (const config of validConfigs) {
       try {
@@ -90,7 +91,20 @@ export default function Scanning() {
             // Fetch scan history for each context
             for (const cluster of data.clusterStatuses) {
               const scans = await fetchScanHistory(config.name, cluster.name);
-              newScanHistory.set(`${config.name}-${cluster.name}`, scans);
+              const key = `${config.name}-${cluster.name}`;
+              newScanHistory.set(key, scans);
+
+              if (scans.length > 0) {
+                const latest = [...scans].sort(
+                  (a, b) =>
+                    new Date(b.completed_at || b.started_at).getTime() -
+                    new Date(a.completed_at || a.started_at).getTime(),
+                )[0];
+                lastScannedUpdates.set(
+                  key,
+                  new Date(latest.completed_at || latest.started_at),
+                );
+              }
             }
           }
         }
@@ -100,6 +114,16 @@ export default function Scanning() {
     }
 
     setScanHistory(newScanHistory);
+    setScanStatuses((prev) => {
+      const updated = new Map(prev);
+      lastScannedUpdates.forEach((date, key) => {
+        const prevStatus = updated.get(key);
+        if (prevStatus) {
+          updated.set(key, { ...prevStatus, lastScanned: date });
+        }
+      });
+      return updated;
+    });
   };
 
   const fetchContextData = async () => {
@@ -321,7 +345,7 @@ export default function Scanning() {
   const getScanStatusBadge = (status: ScanStatus) => {
     if (status.isScanning) {
       return (
-        <Badge className="bg-blue-500 text-white">
+        <Badge className="bg-primary text-primary-foreground">
           <Loader2 className="h-3 w-3 mr-1 animate-spin" />
           Scanning
         </Badge>
@@ -330,7 +354,7 @@ export default function Scanning() {
 
     if (status.error) {
       return (
-        <Badge className="bg-red-500 text-white">
+        <Badge className="bg-support-01 text-white">
           <AlertTriangle className="h-3 w-3 mr-1" />
           Error
         </Badge>
@@ -338,20 +362,32 @@ export default function Scanning() {
     }
 
     if (status.lastScanned) {
-      const timeDiff = new Date().getTime() - status.lastScanned.getTime();
-      const hours = Math.floor(timeDiff / 3600000);
-      const timeAgo = hours < 1 ? "Completed" : `${hours}h ago`;
+      const diffMs = Date.now() - status.lastScanned.getTime();
+      const minutes = Math.floor(diffMs / 60000);
+      const hours = Math.floor(diffMs / 3600000);
+      const days = Math.floor(diffMs / 86400000);
+      const timeAgo =
+        minutes < 1
+          ? "Just now"
+          : minutes < 60
+            ? `${minutes}m ago`
+            : hours < 24
+              ? `${hours}h ago`
+              : `${days}d ago`;
 
       return (
-        <Badge className="bg-green-500 text-white">
+        <Badge className="bg-support-02 text-white">
           <CheckCircle className="h-3 w-3 mr-1" />
-          {timeAgo}
+          Last scanned {timeAgo}
         </Badge>
       );
     }
 
     return (
-      <Badge className="bg-gray-500 text-white">
+      <Badge
+        variant="outline"
+        className="border-transparent bg-gray-500 text-white"
+      >
         <Clock className="h-3 w-3 mr-1" />
         Never scanned
       </Badge>
@@ -477,7 +513,7 @@ export default function Scanning() {
             {/* Context Cards */}
             <div>
               <h3 className="carbon-type-productive-heading-03 text-text-01 mb-4">
-                Available Contexts ({Array.from(scanStatuses.keys()).length})
+                Available Contexts ({totalContexts})
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {Array.from(scanStatuses.entries()).map(

@@ -1,5 +1,6 @@
 import { Navigation } from "@/components/ui/navigation";
 import { ReactNode } from "react";
+import { Navigation as AppNavigation } from "@/components/ui/navigation";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -8,7 +9,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-ui-background">
-      <Navigation />
+      <AppNavigation />
       <main className="carbon-grid py-8">{children}</main>
     </div>
   );
