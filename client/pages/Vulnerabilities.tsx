@@ -391,8 +391,8 @@ export default function Vulnerabilities() {
             <div className="flex items-center space-x-3">
               <button
                 onClick={() => {
-                  // Export functionality could be implemented here
-                  console.log("Exporting vulnerabilities...");
+                  setIsExportOpen(true);
+                  setExportCluster(null);
                 }}
                 className="flex items-center space-x-2 px-4 py-2 border border-ui-04 text-text-01 rounded carbon-type-body-01 hover:bg-ui-01 transition-colors"
               >
