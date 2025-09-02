@@ -370,10 +370,10 @@ export default function Scanning() {
         minutes < 1
           ? "Just now"
           : minutes < 60
-          ? `${minutes}m ago`
-          : hours < 24
-          ? `${hours}h ago`
-          : `${days}d ago`;
+            ? `${minutes}m ago`
+            : hours < 24
+              ? `${hours}h ago`
+              : `${days}d ago`;
 
       return (
         <Badge className="bg-support-02 text-white">
@@ -384,7 +384,10 @@ export default function Scanning() {
     }
 
     return (
-      <Badge variant="outline" className="border-transparent bg-gray-500 text-white">
+      <Badge
+        variant="outline"
+        className="border-transparent bg-gray-500 text-white"
+      >
         <Clock className="h-3 w-3 mr-1" />
         Never scanned
       </Badge>

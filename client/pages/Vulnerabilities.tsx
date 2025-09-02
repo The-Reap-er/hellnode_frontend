@@ -2,8 +2,20 @@ import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { MetricCard } from "@/components/ui/metric-card";
 import { DataTable } from "@/components/ui/data-table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -71,7 +83,9 @@ export default function Vulnerabilities() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [exportCluster, setExportCluster] = useState<string | null>(null);
-  const [clusterToKubeconfig, setClusterToKubeconfig] = useState<Map<string, string>>(new Map());
+  const [clusterToKubeconfig, setClusterToKubeconfig] = useState<
+    Map<string, string>
+  >(new Map());
 
   const fetchVulnerabilityData = async () => {
     setIsLoading(true);
@@ -385,43 +399,66 @@ export default function Vulnerabilities() {
             <DialogHeader>
               <DialogTitle>Export Report</DialogTitle>
               <DialogDescription>
-                {exportCluster ? "Choose where to send the report" : "Select a cluster to export a report for"}
+                {exportCluster
+                  ? "Choose where to send the report"
+                  : "Select a cluster to export a report for"}
               </DialogDescription>
             </DialogHeader>
 
             {!exportCluster ? (
-            <div className="space-y-3">
-              <label className="carbon-type-body-01 text-text-02">Cluster</label>
-              <Select value={exportCluster ?? undefined} onValueChange={setExportCluster}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a cluster" />
-                </SelectTrigger>
-                <SelectContent>
-                  {vulnerabilityData?.clusterStatuses.map((cluster) => (
-                    <SelectItem key={cluster.name} value={cluster.name}>
-                      {cluster.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : (
+              <div className="space-y-3">
+                <label className="carbon-type-body-01 text-text-02">
+                  Cluster
+                </label>
+                <Select
+                  value={exportCluster ?? undefined}
+                  onValueChange={setExportCluster}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a cluster" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vulnerabilityData?.clusterStatuses.map((cluster) => (
+                      <SelectItem key={cluster.name} value={cluster.name}>
+                        {cluster.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Card
                   onClick={async () => {
                     if (!exportCluster) return;
                     const kubeconfig = clusterToKubeconfig.get(exportCluster);
                     if (!kubeconfig) {
-                      toast({ title: "Cluster not found", description: "Unable to map selected cluster to kubeconfig.", variant: "destructive" as any });
+                      toast({
+                        title: "Cluster not found",
+                        description:
+                          "Unable to map selected cluster to kubeconfig.",
+                        variant: "destructive" as any,
+                      });
                       return;
                     }
                     try {
-                      const res = await fetch(`http://localhost:8080/api/v1/kubeconfigs/${encodeURIComponent(kubeconfig)}/defect-report`, { method: "POST" });
+                      const res = await fetch(
+                        `http://localhost:8080/api/v1/kubeconfigs/${encodeURIComponent(kubeconfig)}/defect-report`,
+                        { method: "POST" },
+                      );
                       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                      toast({ title: "Sent to DefectDojo", description: `${exportCluster} report queued.` });
+                      toast({
+                        title: "Sent to DefectDojo",
+                        description: `${exportCluster} report queued.`,
+                      });
                       setIsExportOpen(false);
                     } catch (e) {
-                      toast({ title: "Failed to send", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" as any });
+                      toast({
+                        title: "Failed to send",
+                        description:
+                          e instanceof Error ? e.message : "Unknown error",
+                        variant: "destructive" as any,
+                      });
                     }
                   }}
                   className="cursor-pointer bg-ui-01 border border-ui-03 hover:bg-layer-01 hover:border-interactive-01 transition-colors"
@@ -430,7 +467,9 @@ export default function Vulnerabilities() {
                     <CardTitle className="flex items-center gap-2 text-text-01">
                       <Send className="h-4 w-4" /> DefectDojo
                     </CardTitle>
-                    <CardDescription className="text-text-02">Send the report to DefectDojo</CardDescription>
+                    <CardDescription className="text-text-02">
+                      Send the report to DefectDojo
+                    </CardDescription>
                   </CardHeader>
                 </Card>
                 <Card
@@ -438,11 +477,19 @@ export default function Vulnerabilities() {
                     if (!exportCluster) return;
                     const kubeconfig = clusterToKubeconfig.get(exportCluster);
                     if (!kubeconfig) {
-                      toast({ title: "Cluster not found", description: "Unable to map selected cluster to kubeconfig.", variant: "destructive" as any });
+                      toast({
+                        title: "Cluster not found",
+                        description:
+                          "Unable to map selected cluster to kubeconfig.",
+                        variant: "destructive" as any,
+                      });
                       return;
                     }
                     try {
-                      const res = await fetch(`http://localhost:8080/api/v1/kubeconfigs/${encodeURIComponent(kubeconfig)}/pdf-report`, { method: "POST" });
+                      const res = await fetch(
+                        `http://localhost:8080/api/v1/kubeconfigs/${encodeURIComponent(kubeconfig)}/pdf-report`,
+                        { method: "POST" },
+                      );
                       if (!res.ok) throw new Error(`HTTP ${res.status}`);
                       const blob = await res.blob();
                       const url = URL.createObjectURL(blob);
@@ -453,10 +500,18 @@ export default function Vulnerabilities() {
                       a.click();
                       a.remove();
                       URL.revokeObjectURL(url);
-                      toast({ title: "PDF downloading", description: `${exportCluster} report generated.` });
+                      toast({
+                        title: "PDF downloading",
+                        description: `${exportCluster} report generated.`,
+                      });
                       setIsExportOpen(false);
                     } catch (e) {
-                      toast({ title: "PDF export failed", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" as any });
+                      toast({
+                        title: "PDF export failed",
+                        description:
+                          e instanceof Error ? e.message : "Unknown error",
+                        variant: "destructive" as any,
+                      });
                     }
                   }}
                   className="cursor-pointer bg-ui-01 border border-ui-03 hover:bg-layer-01 hover:border-interactive-01 transition-colors"
@@ -465,14 +520,23 @@ export default function Vulnerabilities() {
                     <CardTitle className="flex items-center gap-2 text-text-01">
                       <FileDown className="h-4 w-4" /> PDF Report
                     </CardTitle>
-                    <CardDescription className="text-text-02">Download a PDF report</CardDescription>
+                    <CardDescription className="text-text-02">
+                      Download a PDF report
+                    </CardDescription>
                   </CardHeader>
                 </Card>
               </div>
             )}
 
             <div className="mt-4 flex justify-between">
-              <Button variant="outline" onClick={() => (exportCluster ? setExportCluster(null) : setIsExportOpen(false))}>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  exportCluster
+                    ? setExportCluster(null)
+                    : setIsExportOpen(false)
+                }
+              >
                 {exportCluster ? "Back" : "Close"}
               </Button>
             </div>
@@ -581,7 +645,8 @@ export default function Vulnerabilities() {
                 Vulnerabilities by Cluster
               </h3>
               <p className="carbon-type-body-01 text-text-02 mb-4">
-                Each chart shows the distribution of severities per cluster. The center number is the total vulnerabilities.
+                Each chart shows the distribution of severities per cluster. The
+                center number is the total vulnerabilities.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {vulnerabilityData.clusterStatuses.map((cluster) => (
@@ -688,7 +753,10 @@ export default function Vulnerabilities() {
                   onRowClick={(row) => {
                     setSelectedVulnerability(
                       row as Vulnerability & {
-                        clusters: Array<{ clusterName: string; containerName: string }>;
+                        clusters: Array<{
+                          clusterName: string;
+                          containerName: string;
+                        }>;
                         image: string;
                       },
                     );
