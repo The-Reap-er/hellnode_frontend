@@ -244,6 +244,8 @@ export default function Vulnerabilities() {
   };
 
   const allVulnerabilities = getAllVulnerabilities();
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   // Sort vulnerabilities by severity (Critical > High > Medium > Low)
   const getSeverityOrder = (severity: string): number => {
