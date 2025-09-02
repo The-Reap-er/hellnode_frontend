@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { MetricCard } from "@/components/ui/metric-card";
-import { DataTable } from "@/components/ui/data-table";
 import {
   Container,
   Package,
@@ -9,24 +8,73 @@ import {
   Filter,
   RefreshCw,
   AlertTriangle,
-  Info,
   Server,
+  Shield,
 } from "lucide-react";
 import { KubeconfigEntry } from "@shared/kubeconfig";
 import {
   ClusterStatusResponse,
   DockerImageSummary,
 } from "@shared/cluster-status";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+
+// Local types for aggregations in this page
+type Severity = "Low" | "Medium" | "High" | "Critical";
+
+type ImageOccurrence = {
+  cluster: string;
+  node: string;
+  containerName: string;
+};
+
+type AggregatedImageDetails = {
+  image: string;
+  names: string[];
+  clusters: string[];
+  nodes: string[];
+  totalInstances: number;
+  occurrences: ImageOccurrence[];
+  severityCounts: Record<Severity, number>;
+  cves: Array<{
+    cve: string;
+    severity: Severity;
+    count: number; // number of occurrences across containers/nodes/clusters
+    clusters: string[];
+    nodes: string[];
+    containers: string[];
+  }>;
+};
 
 export default function DockerImages() {
   const [dockerImages, setDockerImages] = useState<DockerImageSummary[]>([]);
   const [filteredImages, setFilteredImages] = useState<DockerImageSummary[]>(
     [],
   );
+  const [imageDetailsMap, setImageDetailsMap] = useState<
+    Map<string, AggregatedImageDetails>
+  >(new Map());
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [registryFilter, setRegistryFilter] = useState("all");
   const [error, setError] = useState("");
+
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Load and aggregate docker images from all clusters
   useEffect(() => {
@@ -63,6 +111,7 @@ export default function DockerImages() {
       const storedKubeconfigs = localStorage.getItem("kubeconfigs");
       if (!storedKubeconfigs) {
         setDockerImages([]);
+        setImageDetailsMap(new Map());
         return;
       }
 
@@ -71,11 +120,12 @@ export default function DockerImages() {
 
       if (validConfigs.length === 0) {
         setDockerImages([]);
+        setImageDetailsMap(new Map());
         return;
       }
 
-      const allImages: DockerImageSummary[] = [];
       const imageMap = new Map<string, DockerImageSummary>();
+      const detailsMap = new Map<string, AggregatedImageDetails>();
 
       for (const config of validConfigs) {
         try {
@@ -83,13 +133,15 @@ export default function DockerImages() {
             `http://localhost:8080/api/v1/kubeconfigs/${config.name}/status`,
           );
           if (response.ok) {
-            const data: ClusterStatusResponse = await response.json();
+            const data: ClusterStatusResponse & { clusterStatuses: any[] } =
+              await response.json();
 
             if (data.valid && data.clusterStatuses) {
-              data.clusterStatuses.forEach((cluster) => {
-                cluster.nodes.forEach((node) => {
-                  node.containerImages.forEach((image) => {
-                    const key = image.image;
+              data.clusterStatuses.forEach((cluster: any) => {
+                cluster.nodes.forEach((node: any) => {
+                  node.containerImages.forEach((container: any) => {
+                    const key = container.image as string;
+                    // Build summary map
                     if (imageMap.has(key)) {
                       const existing = imageMap.get(key)!;
                       existing.totalInstances++;
@@ -101,11 +153,92 @@ export default function DockerImages() {
                       }
                     } else {
                       imageMap.set(key, {
-                        image: image.image,
-                        name: image.name,
+                        image: container.image,
+                        name: container.name,
                         clusters: [cluster.name],
                         nodes: [node.name],
                         totalInstances: 1,
+                      });
+                    }
+
+                    // Build details map (aggregate vulnerabilities and locations)
+                    const existingDetails = detailsMap.get(key);
+                    if (!existingDetails) {
+                      detailsMap.set(key, {
+                        image: container.image,
+                        names: [container.name],
+                        clusters: [cluster.name],
+                        nodes: [node.name],
+                        totalInstances: 1,
+                        occurrences: [
+                          {
+                            cluster: cluster.name,
+                            node: node.name,
+                            containerName: container.name,
+                          },
+                        ],
+                        severityCounts: {
+                          Critical: 0,
+                          High: 0,
+                          Medium: 0,
+                          Low: 0,
+                        },
+                        cves: [],
+                      });
+                    } else {
+                      if (!existingDetails.names.includes(container.name)) {
+                        existingDetails.names.push(container.name);
+                      }
+                      if (!existingDetails.clusters.includes(cluster.name)) {
+                        existingDetails.clusters.push(cluster.name);
+                      }
+                      if (!existingDetails.nodes.includes(node.name)) {
+                        existingDetails.nodes.push(node.name);
+                      }
+                      existingDetails.totalInstances += 1;
+                      existingDetails.occurrences.push({
+                        cluster: cluster.name,
+                        node: node.name,
+                        containerName: container.name,
+                      });
+                    }
+
+                    // Aggregate vulnerabilities by CVE
+                    const det = detailsMap.get(key)!;
+                    const vulns: Array<{
+                      cve: string;
+                      severity: Severity;
+                    }> = (container.vulnerabilities || []).map((v: any) => ({
+                      cve: v.cve as string,
+                      severity: v.severity as Severity,
+                    }));
+
+                    if (vulns.length > 0) {
+                      vulns.forEach((v) => {
+                        // update severity counts
+                        det.severityCounts[v.severity] += 1;
+
+                        // find existing CVE entry
+                        const idx = det.cves.findIndex((c) => c.cve === v.cve);
+                        if (idx === -1) {
+                          det.cves.push({
+                            cve: v.cve,
+                            severity: v.severity,
+                            count: 1,
+                            clusters: [cluster.name],
+                            nodes: [node.name],
+                            containers: [container.name],
+                          });
+                        } else {
+                          const entry = det.cves[idx];
+                          entry.count += 1;
+                          if (!entry.clusters.includes(cluster.name))
+                            entry.clusters.push(cluster.name);
+                          if (!entry.nodes.includes(node.name))
+                            entry.nodes.push(node.name);
+                          if (!entry.containers.includes(container.name))
+                            entry.containers.push(container.name);
+                        }
                       });
                     }
                   });
@@ -122,7 +255,24 @@ export default function DockerImages() {
         (a, b) => b.totalInstances - a.totalInstances,
       );
 
+      // Sort CVEs in each details entry by severity importance
+      const severityOrder: Record<Severity, number> = {
+        Critical: 0,
+        High: 1,
+        Medium: 2,
+        Low: 3,
+      };
+      detailsMap.forEach((det) => {
+        det.cves.sort((a, b) => {
+          const sa = severityOrder[a.severity];
+          const sb = severityOrder[b.severity];
+          if (sa !== sb) return sa - sb;
+          return b.count - a.count;
+        });
+      });
+
       setDockerImages(sortedImages);
+      setImageDetailsMap(new Map(detailsMap));
     } catch (error) {
       console.error("Error fetching docker images:", error);
       setError("Failed to load docker images");
@@ -132,14 +282,18 @@ export default function DockerImages() {
   };
 
   // Get unique registries for filter
-  const registries = Array.from(
-    new Set(
-      dockerImages.map((img) => {
-        const parts = img.image.split("/");
-        return parts.length > 1 ? parts[0] : "docker.io";
-      }),
-    ),
-  ).sort();
+  const registries = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          dockerImages.map((img) => {
+            const parts = img.image.split("/");
+            return parts.length > 1 ? parts[0] : "docker.io";
+          }),
+        ),
+      ).sort(),
+    [dockerImages],
+  );
 
   // Calculate metrics
   const totalImages = dockerImages.length;
@@ -182,21 +336,30 @@ export default function DockerImages() {
     },
   ];
 
-  const tableColumns = [
-    { key: "image", label: "Image" },
-    { key: "name", label: "Container Name" },
-    { key: "totalInstances", label: "Instances" },
-    { key: "clusters", label: "Clusters" },
-    { key: "nodes", label: "Nodes" },
-  ];
+  const getSeverityColor = (severity: Severity) => {
+    switch (severity) {
+      case "Critical":
+        return "bg-support-01 text-white";
+      case "High":
+        return "bg-orange-500 text-white";
+      case "Medium":
+        return "bg-yellow-500 text-black";
+      case "Low":
+        return "bg-primary text-primary-foreground";
+      default:
+        return "bg-gray-500 text-white";
+    }
+  };
 
-  const tableData = filteredImages.map((img) => ({
-    image: img.image,
-    name: img.name,
-    totalInstances: img.totalInstances,
-    clusters: img.clusters.join(", "),
-    nodes: `${img.nodes.length} node${img.nodes.length !== 1 ? "s" : ""}`,
-  }));
+  const openImageDialog = (image: string) => {
+    setSelectedImage(image);
+    setIsDialogOpen(true);
+  };
+
+  const selectedDetails = useMemo(() => {
+    if (!selectedImage) return null;
+    return imageDetailsMap.get(selectedImage) || null;
+  }, [selectedImage, imageDetailsMap]);
 
   return (
     <DashboardLayout>
@@ -297,7 +460,7 @@ export default function DockerImages() {
           </div>
         </div>
 
-        {/* Images Table */}
+        {/* Images Grid */}
         {isLoading ? (
           <div className="bg-layer-01 border border-ui-03 rounded p-8 text-center">
             <div className="flex flex-col items-center space-y-4">
@@ -313,7 +476,84 @@ export default function DockerImages() {
             </div>
           </div>
         ) : filteredImages.length > 0 ? (
-          <DataTable columns={tableColumns} data={tableData} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredImages.map((img) => {
+              const details = imageDetailsMap.get(img.image);
+              const totalVulns = details
+                ? details.cves.reduce((acc, c) => acc + c.count, 0)
+                : 0;
+              return (
+                <Card
+                  key={img.image}
+                  className="bg-layer-01 border border-ui-03 hover:border-interactive-01 transition-colors cursor-pointer"
+                  onClick={() => openImageDialog(img.image)}
+                >
+                  <CardHeader>
+                    <CardTitle className="text-text-01 break-words text-base">
+                      {img.image}
+                    </CardTitle>
+                    <CardDescription className="text-text-02">
+                      {details && details.names.length > 1
+                        ? `${details.names.length} containers`
+                        : img.name}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="p-2 rounded bg-layer-02 border border-ui-03">
+                        <div className="text-text-02">Instances</div>
+                        <div className="text-text-01 font-semibold">
+                          {img.totalInstances}
+                        </div>
+                      </div>
+                      <div className="p-2 rounded bg-layer-02 border border-ui-03">
+                        <div className="text-text-02">Clusters</div>
+                        <div className="text-text-01 font-semibold">
+                          {img.clusters.length}
+                        </div>
+                      </div>
+                      <div className="p-2 rounded bg-layer-02 border border-ui-03">
+                        <div className="text-text-02">Nodes</div>
+                        <div className="text-text-01 font-semibold">
+                          {img.nodes.length}
+                        </div>
+                      </div>
+                      <div className="p-2 rounded bg-layer-02 border border-ui-03">
+                        <div className="text-text-02">Vulns</div>
+                        <div className="text-text-01 font-semibold">
+                          {totalVulns}
+                        </div>
+                      </div>
+                    </div>
+                    {details && details.cves.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {(Object.keys(details.severityCounts) as Severity[])
+                          .filter((sev) => details.severityCounts[sev] > 0)
+                          .map((sev) => (
+                            <Badge
+                              key={sev}
+                              className={`${getSeverityColor(sev)} text-xs`}
+                            >
+                              {sev}: {details.severityCounts[sev]}
+                            </Badge>
+                          ))}
+                      </div>
+                    )}
+                    {!details || details.cves.length === 0 ? (
+                      <div className="mt-3 inline-flex items-center gap-2 text-xs text-text-02">
+                        <Shield className="h-3 w-3" /> No vulnerabilities
+                      </div>
+                    ) : null}
+                  </CardContent>
+                  <CardFooter className="pt-0">
+                    <div className="text-xs text-text-02">
+                      Click for details
+                    </div>
+                  </CardFooter>
+                </Card>
+              );
+            })}
+          </div>
         ) : dockerImages.length === 0 ? (
           <div className="bg-layer-01 border border-ui-03 rounded p-8 text-center">
             <div className="flex flex-col items-center space-y-4">
@@ -395,6 +635,113 @@ export default function DockerImages() {
           </div>
         )}
       </div>
+
+      {/* Image Vulnerabilities Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Image Details</DialogTitle>
+            <DialogDescription>
+              CVEs and affected locations for the selected image
+            </DialogDescription>
+          </DialogHeader>
+          {selectedDetails ? (
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <div className="carbon-type-productive-heading-02 text-text-01 break-words">
+                  {selectedDetails.image}
+                </div>
+                <div className="flex flex-wrap gap-2 text-sm text-text-02">
+                  <span>{selectedDetails.totalInstances} instances</span>
+                  <span>• {selectedDetails.clusters.length} clusters</span>
+                  <span>• {selectedDetails.nodes.length} nodes</span>
+                  <span>• {selectedDetails.names.length} container name(s)</span>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {(Object.keys(selectedDetails.severityCounts) as Severity[])
+                    .filter((sev) => selectedDetails.severityCounts[sev] > 0)
+                    .map((sev) => (
+                      <Badge key={sev} className={getSeverityColor(sev)}>
+                        {sev}: {selectedDetails.severityCounts[sev]}
+                      </Badge>
+                    ))}
+                  {Object.values(selectedDetails.severityCounts).every(
+                    (x) => x === 0,
+                  ) && (
+                    <span className="text-sm text-text-02">
+                      No vulnerabilities detected
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* CVE List */}
+              <div className="bg-layer-01 border border-ui-03 rounded p-4">
+                <div className="carbon-type-productive-heading-03 text-text-01 mb-3">
+                  CVEs ({selectedDetails.cves.reduce((a, c) => a + c.count, 0)})
+                </div>
+                {selectedDetails.cves.length > 0 ? (
+                  <div className="space-y-3 max-h-80 overflow-auto pr-1">
+                    {selectedDetails.cves.map((cve) => (
+                      <div
+                        key={cve.cve}
+                        className="p-3 rounded border border-ui-03 bg-layer-02"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="carbon-type-body-02 text-text-01 font-medium">
+                            {cve.cve}
+                          </div>
+                          <Badge className={getSeverityColor(cve.severity)}>
+                            {cve.severity}
+                          </Badge>
+                        </div>
+                        <div className="mt-2 text-xs text-text-02 flex flex-wrap gap-2">
+                          <span>{cve.count} occurrence(s)</span>
+                          <span>• {cve.clusters.length} cluster(s)</span>
+                          <span>• {cve.nodes.length} node(s)</span>
+                          <span>• {cve.containers.length} container(s)</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-text-02">
+                    No CVEs reported for this image.
+                  </div>
+                )}
+              </div>
+
+              {/* Locations */}
+              <div className="bg-layer-01 border border-ui-03 rounded p-4">
+                <div className="carbon-type-productive-heading-03 text-text-01 mb-3">
+                  Affected Locations
+                </div>
+                {selectedDetails.occurrences.length > 0 ? (
+                  <div className="space-y-2 max-h-60 overflow-auto pr-1 text-sm">
+                    {selectedDetails.occurrences.map((o, idx) => (
+                      <div
+                        key={`${o.cluster}-${o.node}-${o.containerName}-${idx}`}
+                        className="flex items-center justify-between p-2 bg-layer-02 border border-ui-03 rounded"
+                      >
+                        <div className="text-text-01 font-medium">
+                          {o.cluster}
+                        </div>
+                        <div className="text-text-02">
+                          Node: {o.node} • Container: {o.containerName}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-text-02">No locations.</div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-text-02">No data.</div>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
