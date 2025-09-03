@@ -659,7 +659,7 @@ export default function DockerImages() {
                     <CardContent className="pt-0">
                       <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                         <div className="flex items-center justify-between">
-                          <span className="text-text-02">CVEs</span>
+                          <span className="text-text-02">Unique CVEs</span>
                           <span className="text-text-01 font-semibold">
                             {details ? details.cves.length : 0}
                           </span>
