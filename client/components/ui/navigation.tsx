@@ -1,15 +1,15 @@
 import { cn } from "@/lib/utils";
 import {
-  Shield,
   Container,
   Activity,
-  Settings,
+  Settings as LucideSettings,
   AlertTriangle,
   CheckCircle,
   Server,
   Radar,
   Search,
 } from "lucide-react";
+import { Cloud } from "@carbon/icons-react";
 import { Link, useLocation } from "react-router-dom";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
