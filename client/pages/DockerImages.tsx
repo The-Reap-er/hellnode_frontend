@@ -582,18 +582,16 @@ export default function DockerImages() {
             <div className="flex items-end">
               <div className="flex flex-col gap-2 w-full">
                 <label className="inline-flex items-center gap-2 text-sm text-text-02">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={onlyWithVulns}
-                    onChange={(e) => setOnlyWithVulns(e.target.checked)}
+                    onCheckedChange={(v) => setOnlyWithVulns(Boolean(v))}
                   />
                   <span>Only with vulnerabilities</span>
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-text-02">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={onlyHighCritical}
-                    onChange={(e) => setOnlyHighCritical(e.target.checked)}
+                    onCheckedChange={(v) => setOnlyHighCritical(Boolean(v))}
                   />
                   <span>Only High or Critical</span>
                 </label>
