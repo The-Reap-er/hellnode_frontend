@@ -72,6 +72,10 @@ export default function DockerImages() {
   const [searchTerm, setSearchTerm] = useState("");
   const [registryFilter, setRegistryFilter] = useState("all");
   const [error, setError] = useState("");
+  const [clusterFilter, setClusterFilter] = useState("all");
+  const [minSeverity, setMinSeverity] = useState<Severity | "all">("all");
+  const [onlyWithVulns, setOnlyWithVulns] = useState(false);
+  const [onlyHighCritical, setOnlyHighCritical] = useState(false);
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -83,7 +87,7 @@ export default function DockerImages() {
     fetchDockerImages();
   }, []);
 
-  // Filter images based on search and registry filter
+  // Filter images based on search and filters
   useEffect(() => {
     let filtered = dockerImages;
 
@@ -106,8 +110,41 @@ export default function DockerImages() {
       });
     }
 
+    if (clusterFilter !== "all") {
+      filtered = filtered.filter((img) => img.clusters.includes(clusterFilter));
+    }
+
+    if (onlyWithVulns) {
+      filtered = filtered.filter((img) => {
+        const det = imageDetailsMap.get(img.image);
+        if (!det) return false;
+        const total = Object.values(det.severityCounts).reduce((a, b) => a + b, 0);
+        return total > 0;
+      });
+    }
+
+    if (onlyHighCritical) {
+      filtered = filtered.filter((img) => {
+        const det = imageDetailsMap.get(img.image);
+        if (!det) return false;
+        return det.severityCounts.High + det.severityCounts.Critical > 0;
+      });
+    }
+
+    if (minSeverity !== "all") {
+      const order: Record<Severity, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+      const threshold = order[minSeverity as Severity];
+      filtered = filtered.filter((img) => {
+        const det = imageDetailsMap.get(img.image);
+        if (!det) return false;
+        return (Object.entries(det.severityCounts) as Array<[Severity, number]>).some(
+          ([sev, count]) => count > 0 && order[sev] <= threshold,
+        );
+      });
+    }
+
     setFilteredImages(filtered);
-  }, [dockerImages, searchTerm, registryFilter]);
+  }, [dockerImages, searchTerm, registryFilter, clusterFilter, onlyWithVulns, onlyHighCritical, minSeverity, imageDetailsMap]);
 
   // Clamp current page when results change
   useEffect(() => {
@@ -307,6 +344,12 @@ export default function DockerImages() {
     [dockerImages],
   );
 
+  const clusterOptions = useMemo(
+    () =>
+      Array.from(new Set(dockerImages.flatMap((img) => img.clusters))).sort(),
+    [dockerImages],
+  );
+
   // Calculate metrics
   const totalImages = dockerImages.length;
   const totalInstances = dockerImages.reduce(
@@ -458,7 +501,7 @@ export default function DockerImages() {
           <h3 className="carbon-type-productive-heading-02 text-text-01 mb-4">
             Filters & Search
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             {/* Search */}
             <div>
               <label className="block carbon-type-label-01 text-text-02 mb-2">
@@ -498,12 +541,70 @@ export default function DockerImages() {
               </div>
             </div>
 
+            {/* Cluster Filter */}
+            <div>
+              <label className="block carbon-type-label-01 text-text-02 mb-2">
+                Cluster
+              </label>
+              <select
+                value={clusterFilter}
+                onChange={(e) => setClusterFilter(e.target.value)}
+                className="w-full px-3 py-2 bg-field-01 border border-ui-04 rounded carbon-type-body-01 text-text-01 focus:outline-none focus:ring-2 focus:ring-interactive-01 appearance-none"
+              >
+                <option value="all">All Clusters</option>
+                {clusterOptions.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Minimum Severity */}
+            <div>
+              <label className="block carbon-type-label-01 text-text-02 mb-2">
+                Minimum Severity
+              </label>
+              <select
+                value={minSeverity}
+                onChange={(e) => setMinSeverity(e.target.value as any)}
+                className="w-full px-3 py-2 bg-field-01 border border-ui-04 rounded carbon-type-body-01 text-text-01 focus:outline-none focus:ring-2 focus:ring-interactive-01 appearance-none"
+              >
+                <option value="all">All</option>
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+                <option value="Critical">Critical</option>
+              </select>
+            </div>
+
+            {/* Toggles */}
+            <div className="flex items-end">
+              <div className="flex flex-col gap-2 w-full">
+                <label className="inline-flex items-center gap-2 text-sm text-text-02">
+                  <input
+                    type="checkbox"
+                    checked={onlyWithVulns}
+                    onChange={(e) => setOnlyWithVulns(e.target.checked)}
+                  />
+                  <span>Only with vulnerabilities</span>
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm text-text-02">
+                  <input
+                    type="checkbox"
+                    checked={onlyHighCritical}
+                    onChange={(e) => setOnlyHighCritical(e.target.checked)}
+                  />
+                  <span>Only High or Critical</span>
+                </label>
+              </div>
+            </div>
+
             {/* Results Count */}
             <div className="flex items-end">
-              <div className="bg-ui-03 px-3 py-2 rounded">
+              <div className="bg-ui-03 px-3 py-2 rounded w-full text-center">
                 <span className="carbon-type-body-01 text-text-01">
-                  Showing {fromIndex}–{toIndex} of {filteredImages.length}{" "}
-                  images
+                  {fromIndex}-{toIndex} of {filteredImages.length}
                 </span>
               </div>
             </div>
@@ -548,40 +649,35 @@ export default function DockerImages() {
                           {parseImage(img.image).tag}
                         </span>
                       </div>
-                      <CardDescription className="text-text-02">
-                        {details && details.names.length > 1
-                          ? `${details.names.length} containers`
-                          : img.name}
+                      <CardDescription className="text-text-02 break-all">
+                        {img.image}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="p-2 rounded bg-layer-02 border border-ui-03">
-                          <div className="text-text-02">CVEs</div>
-                          <div className="text-text-01 font-semibold">
+                      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-text-02">CVEs</span>
+                          <span className="text-text-01 font-semibold">
                             {details ? details.cves.length : 0}
-                          </div>
+                          </span>
                         </div>
-                        <div className="p-2 rounded bg-layer-02 border border-ui-03">
-                          <div className="text-text-02">High+Critical</div>
-                          <div className="text-text-01 font-semibold">
+                        <div className="flex items-center justify-between">
+                          <span className="text-text-02">High+Critical</span>
+                          <span className="text-text-01 font-semibold">
                             {details
-                              ? details.severityCounts.High +
-                                details.severityCounts.Critical
+                              ? details.severityCounts.High + details.severityCounts.Critical
                               : 0}
-                          </div>
+                          </span>
                         </div>
-                        <div className="p-2 rounded bg-layer-02 border border-ui-03">
-                          <div className="text-text-02">Vulns</div>
-                          <div className="text-text-01 font-semibold">
-                            {totalVulns}
-                          </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-text-02">Vulns</span>
+                          <span className="text-text-01 font-semibold">{totalVulns}</span>
                         </div>
-                        <div className="p-2 rounded bg-layer-02 border border-ui-03">
-                          <div className="text-text-02">Containers</div>
-                          <div className="text-text-01 font-semibold">
+                        <div className="flex items-center justify-between">
+                          <span className="text-text-02">Containers</span>
+                          <span className="text-text-01 font-semibold">
                             {details ? details.names.length : 1}
-                          </div>
+                          </span>
                         </div>
                       </div>
                       {details && details.cves.length > 0 && (
@@ -613,7 +709,7 @@ export default function DockerImages() {
                                   {entries.map((e) => (
                                     <div key={e.key} className="flex items-center gap-1">
                                       <span className={`inline-block h-2 w-2 rounded ${e.color}`} />
-                                      <span className="text-text-02">{e.key}:</span>
+                                      <span className="text-text-02">{e.key === "Critical" ? "C" : e.key === "High" ? "H" : e.key === "Medium" ? "M" : "L"}:</span>
                                       <span className="text-text-01 font-medium">
                                         {details.severityCounts[e.key]}
                                       </span>
