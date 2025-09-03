@@ -319,6 +319,10 @@ export default function DockerImages() {
           if (sa !== sb) return sa - sb;
           return b.count - a.count;
         });
+        det.severityCounts = { Critical: 0, High: 0, Medium: 0, Low: 0 };
+        det.cves.forEach((cve) => {
+          det.severityCounts[cve.severity] += 1;
+        });
       });
 
       setDockerImages(sortedImages);
