@@ -33,6 +33,13 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 
 // Local types for aggregations in this page
 type Severity = "Low" | "Medium" | "High" | "Critical";
@@ -573,21 +580,19 @@ export default function DockerImages() {
               <label className="block carbon-type-label-01 text-text-02 mb-2">
                 Registry
               </label>
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-text-03" />
-                <select
-                  value={registryFilter}
-                  onChange={(e) => setRegistryFilter(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 bg-field-01 border border-ui-04 rounded carbon-type-body-01 text-text-01 focus:outline-none focus:ring-2 focus:ring-interactive-01 appearance-none"
-                >
-                  <option value="all">All Registries</option>
+              <Select value={registryFilter} onValueChange={setRegistryFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select registry" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Registries</SelectItem>
                   {registries.map((registry) => (
-                    <option key={registry} value={registry}>
+                    <SelectItem key={registry} value={registry}>
                       {registry}
-                    </option>
+                    </SelectItem>
                   ))}
-                </select>
-              </div>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Cluster Filter */}
@@ -595,18 +600,19 @@ export default function DockerImages() {
               <label className="block carbon-type-label-01 text-text-02 mb-2">
                 Cluster
               </label>
-              <select
-                value={clusterFilter}
-                onChange={(e) => setClusterFilter(e.target.value)}
-                className="w-full px-3 py-2 bg-field-01 border border-ui-04 rounded carbon-type-body-01 text-text-01 focus:outline-none focus:ring-2 focus:ring-interactive-01 appearance-none"
-              >
-                <option value="all">All Clusters</option>
-                {clusterOptions.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+              <Select value={clusterFilter} onValueChange={setClusterFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select cluster" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Clusters</SelectItem>
+                  {clusterOptions.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Minimum Severity */}
@@ -614,17 +620,18 @@ export default function DockerImages() {
               <label className="block carbon-type-label-01 text-text-02 mb-2">
                 Minimum Severity
               </label>
-              <select
-                value={minSeverity}
-                onChange={(e) => setMinSeverity(e.target.value as any)}
-                className="w-full px-3 py-2 bg-field-01 border border-ui-04 rounded carbon-type-body-01 text-text-01 focus:outline-none focus:ring-2 focus:ring-interactive-01 appearance-none"
-              >
-                <option value="all">All</option>
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-                <option value="Critical">Critical</option>
-              </select>
+              <Select value={minSeverity} onValueChange={(v) => setMinSeverity(v as any)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="Low">Low</SelectItem>
+                  <SelectItem value="Medium">Medium</SelectItem>
+                  <SelectItem value="High">High</SelectItem>
+                  <SelectItem value="Critical">Critical</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Toggles */}
