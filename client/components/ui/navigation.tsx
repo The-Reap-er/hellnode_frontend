@@ -15,13 +15,13 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: Activity },
-  { name: "Kubernetes", href: "/kubernetes", icon: Shield },
+  { name: "Kubeconfigs", href: "/kubernetes", icon: Cloud },
   { name: "Clusters", href: "/clusters", icon: Server },
   { name: "Docker Images", href: "/docker", icon: Container },
   { name: "Scanning", href: "/scanning", icon: Radar },
   { name: "Vulnerabilities", href: "/vulnerabilities", icon: AlertTriangle },
   { name: "Compliance", href: "/compliance", icon: CheckCircle },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Settings", href: "/settings", icon: LucideSettings },
 ];
 
 export function Navigation() {
