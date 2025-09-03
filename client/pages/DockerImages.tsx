@@ -673,7 +673,7 @@ export default function DockerImages() {
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-text-02">Vulns</span>
+                          <span className="text-text-02">Occurrences</span>
                           <span className="text-text-01 font-semibold">{totalVulns}</span>
                         </div>
                         <div className="flex items-center justify-between">
