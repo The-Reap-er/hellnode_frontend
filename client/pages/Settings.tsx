@@ -41,9 +41,8 @@ export default function Settings() {
   const [onlyWithVulnsDefault, setOnlyWithVulnsDefault] = useState<boolean>(
     initial.onlyWithVulnsDefault ?? false,
   );
-  const [onlyHighCriticalDefault, setOnlyHighCriticalDefault] = useState<boolean>(
-    initial.onlyHighCriticalDefault ?? false,
-  );
+  const [onlyHighCriticalDefault, setOnlyHighCriticalDefault] =
+    useState<boolean>(initial.onlyHighCriticalDefault ?? false);
 
   useEffect(() => {
     if (initial.theme) setTheme(initial.theme);
@@ -59,7 +58,10 @@ export default function Settings() {
       onlyHighCriticalDefault,
     };
     saveSettings(next);
-    toast({ title: "Settings saved", description: "Your preferences are now active." });
+    toast({
+      title: "Settings saved",
+      description: "Your preferences are now active.",
+    });
   };
 
   return (
@@ -70,7 +72,8 @@ export default function Settings() {
             Settings
           </h1>
           <p className="carbon-type-body-02 text-text-02">
-            Configure appearance and Docker Images defaults. Changes are saved locally and applied immediately.
+            Configure appearance and Docker Images defaults. Changes are saved
+            locally and applied immediately.
           </p>
         </div>
 
@@ -126,7 +129,9 @@ export default function Settings() {
                 min={0}
                 step={30}
                 value={imagesAutoRefresh}
-                onChange={(e) => setImagesAutoRefresh(Math.max(0, Number(e.target.value) || 0))}
+                onChange={(e) =>
+                  setImagesAutoRefresh(Math.max(0, Number(e.target.value) || 0))
+                }
               />
               <p className="carbon-type-label-01 text-text-03 mt-1">
                 Set 0 to disable auto-refresh.
@@ -143,7 +148,9 @@ export default function Settings() {
               <label className="inline-flex items-center gap-2 carbon-type-body-01 text-text-01">
                 <Checkbox
                   checked={onlyHighCriticalDefault}
-                  onCheckedChange={(v) => setOnlyHighCriticalDefault(Boolean(v))}
+                  onCheckedChange={(v) =>
+                    setOnlyHighCriticalDefault(Boolean(v))
+                  }
                 />
                 <span>Default: only High or Critical</span>
               </label>

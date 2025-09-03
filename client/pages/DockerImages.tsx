@@ -120,7 +120,10 @@ export default function DockerImages() {
       filtered = filtered.filter((img) => {
         const det = imageDetailsMap.get(img.image);
         if (!det) return false;
-        const total = Object.values(det.severityCounts).reduce((a, b) => a + b, 0);
+        const total = Object.values(det.severityCounts).reduce(
+          (a, b) => a + b,
+          0,
+        );
         return total > 0;
       });
     }
@@ -134,19 +137,33 @@ export default function DockerImages() {
     }
 
     if (minSeverity !== "all") {
-      const order: Record<Severity, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+      const order: Record<Severity, number> = {
+        Critical: 0,
+        High: 1,
+        Medium: 2,
+        Low: 3,
+      };
       const threshold = order[minSeverity as Severity];
       filtered = filtered.filter((img) => {
         const det = imageDetailsMap.get(img.image);
         if (!det) return false;
-        return (Object.entries(det.severityCounts) as Array<[Severity, number]>).some(
-          ([sev, count]) => count > 0 && order[sev] <= threshold,
-        );
+        return (
+          Object.entries(det.severityCounts) as Array<[Severity, number]>
+        ).some(([sev, count]) => count > 0 && order[sev] <= threshold);
       });
     }
 
     setFilteredImages(filtered);
-  }, [dockerImages, searchTerm, registryFilter, clusterFilter, onlyWithVulns, onlyHighCritical, minSeverity, imageDetailsMap]);
+  }, [
+    dockerImages,
+    searchTerm,
+    registryFilter,
+    clusterFilter,
+    onlyWithVulns,
+    onlyHighCritical,
+    minSeverity,
+    imageDetailsMap,
+  ]);
 
   // Load settings defaults
   useEffect(() => {
@@ -155,9 +172,12 @@ export default function DockerImages() {
       if (raw) {
         const s = JSON.parse(raw) as any;
         if (typeof s.imagesPageSize === "number") setPageSize(s.imagesPageSize);
-        if (typeof s.imagesAutoRefresh === "number") setAutoRefreshSec(s.imagesAutoRefresh);
-        if (typeof s.onlyWithVulnsDefault === "boolean") setOnlyWithVulns(s.onlyWithVulnsDefault);
-        if (typeof s.onlyHighCriticalDefault === "boolean") setOnlyHighCritical(s.onlyHighCriticalDefault);
+        if (typeof s.imagesAutoRefresh === "number")
+          setAutoRefreshSec(s.imagesAutoRefresh);
+        if (typeof s.onlyWithVulnsDefault === "boolean")
+          setOnlyWithVulns(s.onlyWithVulnsDefault);
+        if (typeof s.onlyHighCriticalDefault === "boolean")
+          setOnlyHighCritical(s.onlyHighCriticalDefault);
       }
     } catch {}
   }, []);
@@ -692,13 +712,16 @@ export default function DockerImages() {
                           <span className="text-text-02">High+Critical</span>
                           <span className="text-text-01 font-semibold">
                             {details
-                              ? details.severityCounts.High + details.severityCounts.Critical
+                              ? details.severityCounts.High +
+                                details.severityCounts.Critical
                               : 0}
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-text-02">Occurrences</span>
-                          <span className="text-text-01 font-semibold">{totalVulns}</span>
+                          <span className="text-text-01 font-semibold">
+                            {totalVulns}
+                          </span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-text-02">Containers</span>
@@ -710,11 +733,22 @@ export default function DockerImages() {
                       {details && details.cves.length > 0 && (
                         <div className="mt-3 space-y-2">
                           {(() => {
-                            const total = Object.values(details.severityCounts).reduce((a, b) => a + b, 0);
+                            const total = Object.values(
+                              details.severityCounts,
+                            ).reduce((a, b) => a + b, 0);
                             const entries = [
-                              { key: "Critical" as Severity, color: "bg-support-01" },
-                              { key: "High" as Severity, color: "bg-orange-500" },
-                              { key: "Medium" as Severity, color: "bg-yellow-500" },
+                              {
+                                key: "Critical" as Severity,
+                                color: "bg-support-01",
+                              },
+                              {
+                                key: "High" as Severity,
+                                color: "bg-orange-500",
+                              },
+                              {
+                                key: "Medium" as Severity,
+                                color: "bg-yellow-500",
+                              },
                               { key: "Low" as Severity, color: "bg-sky-400" },
                             ];
                             return total > 0 ? (
@@ -726,7 +760,9 @@ export default function DockerImages() {
                                       <div
                                         key={e.key}
                                         className={`${e.color}`}
-                                        style={{ width: `${(val / total) * 100}%` }}
+                                        style={{
+                                          width: `${(val / total) * 100}%`,
+                                        }}
                                         title={`${e.key}: ${val}`}
                                       />
                                     );
@@ -734,9 +770,23 @@ export default function DockerImages() {
                                 </div>
                                 <div className="grid grid-cols-4 gap-2 text-xs">
                                   {entries.map((e) => (
-                                    <div key={e.key} className="flex items-center gap-1">
-                                      <span className={`inline-block h-2 w-2 rounded ${e.color}`} />
-                                      <span className="text-text-02">{e.key === "Critical" ? "C" : e.key === "High" ? "H" : e.key === "Medium" ? "M" : "L"}:</span>
+                                    <div
+                                      key={e.key}
+                                      className="flex items-center gap-1"
+                                    >
+                                      <span
+                                        className={`inline-block h-2 w-2 rounded ${e.color}`}
+                                      />
+                                      <span className="text-text-02">
+                                        {e.key === "Critical"
+                                          ? "C"
+                                          : e.key === "High"
+                                            ? "H"
+                                            : e.key === "Medium"
+                                              ? "M"
+                                              : "L"}
+                                        :
+                                      </span>
                                       <span className="text-text-01 font-medium">
                                         {details.severityCounts[e.key]}
                                       </span>
@@ -745,7 +795,9 @@ export default function DockerImages() {
                                 </div>
                               </div>
                             ) : (
-                              <div className="text-xs text-text-02">No vulnerabilities.</div>
+                              <div className="text-xs text-text-02">
+                                No vulnerabilities.
+                              </div>
                             );
                           })()}
                         </div>

@@ -361,7 +361,12 @@ export default function Vulnerabilities() {
       key: "severity",
       label: "Severity",
       render: (value: string) => (
-        <span className={"inline-flex items-center px-2 py-0.5 rounded border border-ui-04 text-xs font-semibold " + getSeverityColor(value)}>
+        <span
+          className={
+            "inline-flex items-center px-2 py-0.5 rounded border border-ui-04 text-xs font-semibold " +
+            getSeverityColor(value)
+          }
+        >
           {value}
         </span>
       ),
@@ -621,7 +626,11 @@ export default function Vulnerabilities() {
             {(() => {
               const total = criticalCount + highCount + mediumCount + lowCount;
               const entries = [
-                { key: "Critical", color: "bg-support-01", value: criticalCount },
+                {
+                  key: "Critical",
+                  color: "bg-support-01",
+                  value: criticalCount,
+                },
                 { key: "High", color: "bg-orange-500", value: highCount },
                 { key: "Medium", color: "bg-yellow-500", value: mediumCount },
                 { key: "Low", color: "bg-sky-400", value: lowCount },
@@ -633,7 +642,9 @@ export default function Vulnerabilities() {
                       <div
                         key={e.key}
                         className={`${e.color}`}
-                        style={{ width: `${total ? (e.value / total) * 100 : 0}%` }}
+                        style={{
+                          width: `${total ? (e.value / total) * 100 : 0}%`,
+                        }}
                         title={`${e.key}: ${e.value}`}
                       />
                     ))}
@@ -641,9 +652,13 @@ export default function Vulnerabilities() {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
                     {entries.map((e) => (
                       <div key={e.key} className="flex items-center gap-2">
-                        <span className={`inline-block h-3 w-3 rounded ${e.color}`} />
+                        <span
+                          className={`inline-block h-3 w-3 rounded ${e.color}`}
+                        />
                         <span className="text-text-02">{e.key}:</span>
-                        <span className="text-text-01 font-medium">{e.value}</span>
+                        <span className="text-text-01 font-medium">
+                          {e.value}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -661,7 +676,8 @@ export default function Vulnerabilities() {
                 Vulnerabilities by Cluster
               </h3>
               <p className="carbon-type-body-01 text-text-02 mb-4">
-                Each chart shows the distribution of severities per cluster using a stacked bar. The label below shows counts.
+                Each chart shows the distribution of severities per cluster
+                using a stacked bar. The label below shows counts.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {vulnerabilityData.clusterStatuses.map((cluster) => (
@@ -825,8 +841,10 @@ export default function Vulnerabilities() {
                       {selectedVulnerability.cve}
                     </h3>
                     <span
-                      className={"inline-flex items-center px-2 py-0.5 rounded border border-ui-04 text-xs font-semibold " +
-                        getSeverityColor(selectedVulnerability.severity)}
+                      className={
+                        "inline-flex items-center px-2 py-0.5 rounded border border-ui-04 text-xs font-semibold " +
+                        getSeverityColor(selectedVulnerability.severity)
+                      }
                     >
                       {selectedVulnerability.severity}
                     </span>
