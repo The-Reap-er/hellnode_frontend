@@ -32,6 +32,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Local types for aggregations in this page
 type Severity = "Low" | "Medium" | "High" | "Critical";
