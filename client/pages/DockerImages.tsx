@@ -395,7 +395,7 @@ export default function DockerImages() {
       case "Medium":
         return "bg-yellow-500 text-black";
       case "Low":
-        return "bg-primary text-primary-foreground";
+        return "bg-sky-400 text-white";
       default:
         return "bg-gray-500 text-white";
     }
@@ -586,17 +586,46 @@ export default function DockerImages() {
                         </div>
                       </div>
                       {details && details.cves.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {(Object.keys(details.severityCounts) as Severity[])
-                            .filter((sev) => details.severityCounts[sev] > 0)
-                            .map((sev) => (
-                              <Badge
-                                key={sev}
-                                className={`${getSeverityColor(sev)} text-xs`}
-                              >
-                                {sev}: {details.severityCounts[sev]}
-                              </Badge>
-                            ))}
+                        <div className="mt-3 space-y-2">
+                          {(() => {
+                            const total = Object.values(details.severityCounts).reduce((a, b) => a + b, 0);
+                            const entries = [
+                              { key: "Critical" as Severity, color: "bg-support-01" },
+                              { key: "High" as Severity, color: "bg-orange-500" },
+                              { key: "Medium" as Severity, color: "bg-yellow-500" },
+                              { key: "Low" as Severity, color: "bg-sky-400" },
+                            ];
+                            return total > 0 ? (
+                              <div className="space-y-2">
+                                <div className="w-full h-2 flex overflow-hidden border border-ui-03 bg-layer-02 rounded">
+                                  {entries.map((e) => {
+                                    const val = details.severityCounts[e.key];
+                                    return (
+                                      <div
+                                        key={e.key}
+                                        className={`${e.color}`}
+                                        style={{ width: `${(val / total) * 100}%` }}
+                                        title={`${e.key}: ${val}`}
+                                      />
+                                    );
+                                  })}
+                                </div>
+                                <div className="grid grid-cols-4 gap-2 text-xs">
+                                  {entries.map((e) => (
+                                    <div key={e.key} className="flex items-center gap-1">
+                                      <span className={`inline-block h-2 w-2 rounded ${e.color}`} />
+                                      <span className="text-text-02">{e.key}:</span>
+                                      <span className="text-text-01 font-medium">
+                                        {details.severityCounts[e.key]}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-xs text-text-02">No vulnerabilities.</div>
+                            );
+                          })()}
                         </div>
                       )}
                       {!details || details.cves.length === 0 ? (
@@ -769,22 +798,6 @@ export default function DockerImages() {
                     • {selectedDetails.names.length} container name(s)
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {(Object.keys(selectedDetails.severityCounts) as Severity[])
-                    .filter((sev) => selectedDetails.severityCounts[sev] > 0)
-                    .map((sev) => (
-                      <Badge key={sev} className={getSeverityColor(sev)}>
-                        {sev}: {selectedDetails.severityCounts[sev]}
-                      </Badge>
-                    ))}
-                  {Object.values(selectedDetails.severityCounts).every(
-                    (x) => x === 0,
-                  ) && (
-                    <span className="text-sm text-text-02">
-                      No vulnerabilities detected
-                    </span>
-                  )}
-                </div>
               </div>
 
               {/* Severity Bar Chart */}
@@ -800,7 +813,7 @@ export default function DockerImages() {
                     { key: "Critical" as Severity, color: "bg-support-01" },
                     { key: "High" as Severity, color: "bg-orange-500" },
                     { key: "Medium" as Severity, color: "bg-yellow-500" },
-                    { key: "Low" as Severity, color: "bg-primary" },
+                    { key: "Low" as Severity, color: "bg-sky-400" },
                   ];
                   return total > 0 ? (
                     <div className="space-y-3">
