@@ -66,9 +66,6 @@ export function Navigation() {
       {/* User actions */}
       <div className="flex items-center space-x-4">
         <ThemeToggle />
-        <button className="flex h-8 w-8 items-center justify-center rounded bg-ui-01 text-text-02 hover:bg-ui-03 hover:text-text-01 transition-colors">
-          <Settings className="h-4 w-4" />
-        </button>
         <div className="h-8 w-8 rounded-full bg-interactive-01 flex items-center justify-center">
           <span className="carbon-type-label-01 text-white font-medium">U</span>
         </div>
