@@ -361,9 +361,9 @@ export default function Vulnerabilities() {
       key: "severity",
       label: "Severity",
       render: (value: string) => (
-        <Badge className={"px-2 py-0.5 border border-ui-04 rounded " + getSeverityColor(value)}>
+        <span className={"inline-flex items-center px-2 py-0.5 rounded border border-ui-04 text-xs font-semibold " + getSeverityColor(value)}>
           {value}
-        </Badge>
+        </span>
       ),
     },
     { key: "cve", label: "CVE ID" },
@@ -824,13 +824,12 @@ export default function Vulnerabilities() {
                     <h3 className="carbon-type-productive-heading-02 text-text-01">
                       {selectedVulnerability.cve}
                     </h3>
-                    <Badge
-                      className={getSeverityColor(
-                        selectedVulnerability.severity,
-                      )}
+                    <span
+                      className={"inline-flex items-center px-2 py-0.5 rounded border border-ui-04 text-xs font-semibold " +
+                        getSeverityColor(selectedVulnerability.severity)}
                     >
                       {selectedVulnerability.severity}
-                    </Badge>
+                    </span>
                   </div>
                   <p className="carbon-type-body-01 text-text-02 mb-3">
                     {selectedVulnerability.message}
