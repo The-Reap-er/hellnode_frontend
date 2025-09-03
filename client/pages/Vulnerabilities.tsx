@@ -336,9 +336,8 @@ export default function Vulnerabilities() {
     {
       title: "Critical & High",
       value: (criticalCount + highCount).toString(),
-      change: criticalCount > 0 ? "Immediate attention required" : "Good",
-      changeType:
-        criticalCount > 0 ? ("negative" as const) : ("positive" as const),
+      change: "",
+      changeType: "neutral" as const,
       icon: AlertTriangle,
     },
     {
@@ -362,7 +361,9 @@ export default function Vulnerabilities() {
       key: "severity",
       label: "Severity",
       render: (value: string) => (
-        <Badge className={getSeverityColor(value)}>{value}</Badge>
+        <Badge className={"px-2 py-0.5 border border-ui-04 rounded " + getSeverityColor(value)}>
+          {value}
+        </Badge>
       ),
     },
     { key: "cve", label: "CVE ID" },
