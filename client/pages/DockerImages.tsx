@@ -80,7 +80,8 @@ export default function DockerImages() {
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const PAGE_SIZE = 12;
+  const [pageSize, setPageSize] = useState(12);
+  const [autoRefreshSec, setAutoRefreshSec] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
 
   // Load and aggregate docker images from all clusters
@@ -147,11 +148,34 @@ export default function DockerImages() {
     setFilteredImages(filtered);
   }, [dockerImages, searchTerm, registryFilter, clusterFilter, onlyWithVulns, onlyHighCritical, minSeverity, imageDetailsMap]);
 
+  // Load settings defaults
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("appSettings");
+      if (raw) {
+        const s = JSON.parse(raw) as any;
+        if (typeof s.imagesPageSize === "number") setPageSize(s.imagesPageSize);
+        if (typeof s.imagesAutoRefresh === "number") setAutoRefreshSec(s.imagesAutoRefresh);
+        if (typeof s.onlyWithVulnsDefault === "boolean") setOnlyWithVulns(s.onlyWithVulnsDefault);
+        if (typeof s.onlyHighCriticalDefault === "boolean") setOnlyHighCritical(s.onlyHighCriticalDefault);
+      }
+    } catch {}
+  }, []);
+
+  // Auto refresh
+  useEffect(() => {
+    if (!autoRefreshSec || autoRefreshSec <= 0) return;
+    const id = setInterval(() => {
+      fetchDockerImages();
+    }, autoRefreshSec * 1000);
+    return () => clearInterval(id);
+  }, [autoRefreshSec]);
+
   // Clamp current page when results change
   useEffect(() => {
-    const tp = Math.max(1, Math.ceil(filteredImages.length / PAGE_SIZE));
+    const tp = Math.max(1, Math.ceil(filteredImages.length / pageSize));
     if (currentPage > tp) setCurrentPage(tp);
-  }, [filteredImages, currentPage]);
+  }, [filteredImages, currentPage, pageSize]);
 
   const fetchDockerImages = async () => {
     setIsLoading(true);
@@ -396,17 +420,17 @@ export default function DockerImages() {
     },
   ];
 
-  const totalPages = Math.max(1, Math.ceil(filteredImages.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(filteredImages.length / pageSize));
   const fromIndex =
-    filteredImages.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
-  const toIndex = Math.min(filteredImages.length, currentPage * PAGE_SIZE);
+    filteredImages.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const toIndex = Math.min(filteredImages.length, currentPage * pageSize);
   const pageImages = useMemo(
     () =>
       filteredImages.slice(
-        (currentPage - 1) * PAGE_SIZE,
-        currentPage * PAGE_SIZE,
+        (currentPage - 1) * pageSize,
+        currentPage * pageSize,
       ),
-    [filteredImages, currentPage],
+    [filteredImages, currentPage, pageSize],
   );
 
   const parseImage = (image: string) => {
