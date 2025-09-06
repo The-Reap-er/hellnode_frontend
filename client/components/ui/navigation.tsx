@@ -63,10 +63,12 @@ export function Navigation() {
       {/* Logo and brand */}
       <div className="flex items-center space-x-8">
         <Link to="/" className="flex items-center space-x-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded bg-interactive-01">
-            <Search className="h-5 w-5 text-white" />
-          </div>
-          <span className="carbon-type-productive-heading-03 text-text-01">Lens</span>
+          <img
+            src="https://cdn.builder.io/api/v1/image/assets%2F5c995ee535ba41c1a97538efc7d126fb%2F8295a42d5fe340d0b023be6260283662?format=webp&width=800"
+            alt="hellnode logo"
+            className="h-8 w-8 rounded object-cover"
+          />
+          <span className="carbon-type-productive-heading-03 text-text-01">hellnode</span>
         </Link>
 
         {/* Main navigation */}
