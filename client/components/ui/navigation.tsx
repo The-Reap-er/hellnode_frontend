@@ -44,7 +44,11 @@ const navigation: Array<any> = [
     name: "Security",
     icon: Radar,
     children: [
-      { name: "Vulnerabilities", href: "/vulnerabilities", icon: AlertTriangle },
+      {
+        name: "Vulnerabilities",
+        href: "/vulnerabilities",
+        icon: AlertTriangle,
+      },
     ],
   },
   {
@@ -68,7 +72,9 @@ export function Navigation() {
             alt="hellnode logo"
             className="h-10 w-10 object-contain"
           />
-          <span className="carbon-type-productive-heading-03 text-text-01">hellnode</span>
+          <span className="carbon-type-productive-heading-03 text-text-01">
+            hellnode
+          </span>
         </Link>
 
         {/* Main navigation */}
