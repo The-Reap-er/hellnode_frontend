@@ -33,13 +33,16 @@ const navigation: Array<any> = [
   {
     name: "Docker",
     icon: Container,
-    children: [{ name: "Docker Images", href: "/docker", icon: Container }],
+    children: [
+      { name: "Docker Images", href: "/docker", icon: Container },
+      { name: "Cluster Images Scanning", href: "/scanning", icon: Radar },
+      { name: "Image Scanning", href: "/image-scanning", icon: Package },
+    ],
   },
   {
     name: "Security",
     icon: Radar,
     children: [
-      { name: "Scanning", href: "/scanning", icon: Radar },
       { name: "Vulnerabilities", href: "/vulnerabilities", icon: AlertTriangle },
     ],
   },
