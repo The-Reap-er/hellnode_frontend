@@ -16,6 +16,7 @@ import DockerImages from "./pages/DockerImages";
 import Scanning from "./pages/Scanning";
 import Vulnerabilities from "./pages/Vulnerabilities";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,15 @@ const App = () => (
             <Route path="/clusters" element={<ClusterDetails />} />
             <Route path="/docker" element={<DockerImages />} />
             <Route path="/scanning" element={<Scanning />} />
+            <Route
+              path="/image-scanning"
+              element={
+                <PlaceholderPage
+                  title="Image Scanning"
+                  description="Scan and analyze container images from registries and clusters. (Placeholder)"
+                />
+              }
+            />
             <Route path="/vulnerabilities" element={<Vulnerabilities />} />
             <Route
               path="/compliance"
@@ -48,15 +58,7 @@ const App = () => (
                 />
               }
             />
-            <Route
-              path="/settings"
-              element={
-                <PlaceholderPage
-                  title="Settings & Configuration"
-                  description="Configure scan policies, notification settings, integrations, and user management for your security scanning platform."
-                />
-              }
-            />
+            <Route path="/settings" element={<Settings />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

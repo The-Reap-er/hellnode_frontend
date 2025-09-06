@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@carbon/icons-react':
+        specifier: ^11.66.0
+        version: 11.66.0(react@18.3.1)
       dotenv:
         specifier: ^17.2.1
         version: 17.2.1
@@ -245,6 +248,14 @@ packages:
     resolution: {integrity: sha512-KHp2IflsnGywDjBWDkR9iEqiWSpc8GIi0lgTT3mOElT0PP1tG26P4tmFI2YvAdzgq9RGyoHZQEIEdZy6Ec5xCA==}
     engines: {node: '>=6.9.0'}
 
+  '@carbon/icon-helpers@10.65.0':
+    resolution: {integrity: sha512-QsYaZSD33vmE/uAX8EmNO095btGNSasbQj8ETOj+PLGya9xMUrFAWY/GEYM2w9qZRBTrbcrXn61rnBVT2DWbKg==}
+
+  '@carbon/icons-react@11.66.0':
+    resolution: {integrity: sha512-bx5fATpmngdRHfEojovoIKJ0Gs/W5o0pRJNh/yfbJA25RHlbTOfWxgljVK+hx5zPF/qjvshIm4rT29eDvX+ifQ==}
+    peerDependencies:
+      react: '>=16'
+
   '@date-fns/tz@1.4.0':
     resolution: {integrity: sha512-FLHih5yiLZD50fMLuXhq51PYWc6RDrV23DZm96vAM15Z+YB65iywx+6k5KhlxPApWpRQucJD5FZp9kR57Ziqtw==}
 
@@ -426,6 +437,10 @@ packages:
     resolution: {integrity: sha512-u0+6X58gkjMcxur1wRWokA7XsiiBJ6aK17aPZxhkoYiK5J+HcTx0Vhu9ovXe6H+dVpO6cjrn2FkJTryXEMlryQ==}
     peerDependencies:
       react-hook-form: ^7.55.0
+
+  '@ibm/telemetry-js@1.10.1':
+    resolution: {integrity: sha512-aQcDq03BKbgNnkHujHbA950wJVHtJnY0PsMHKyxgRvr3XPgInWjDfgxJQmKIp9I8Vy2wpfe0cGmduJfIX0HewQ==}
+    hasBin: true
 
   '@isaacs/cliui@8.0.2':
     resolution: {integrity: sha512-O8jcjabXaleOG9DQ0+ARXWZBTfnP4WNAqzuiJK7ll44AmxGKv/J2M4TPjxjY3znBCfvBXFzucm1twdyFybFqEA==}
@@ -2929,6 +2944,17 @@ snapshots:
 
   '@babel/runtime@7.28.2': {}
 
+  '@carbon/icon-helpers@10.65.0':
+    dependencies:
+      '@ibm/telemetry-js': 1.10.1
+
+  '@carbon/icons-react@11.66.0(react@18.3.1)':
+    dependencies:
+      '@carbon/icon-helpers': 10.65.0
+      '@ibm/telemetry-js': 1.10.1
+      prop-types: 15.8.1
+      react: 18.3.1
+
   '@date-fns/tz@1.4.0': {}
 
   '@dimforge/rapier3d-compat@0.12.0': {}
@@ -3032,6 +3058,8 @@ snapshots:
     dependencies:
       '@standard-schema/utils': 0.3.0
       react-hook-form: 7.62.0(react@18.3.1)
+
+  '@ibm/telemetry-js@1.10.1': {}
 
   '@isaacs/cliui@8.0.2':
     dependencies:

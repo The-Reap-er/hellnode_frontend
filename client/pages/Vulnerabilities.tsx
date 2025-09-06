@@ -306,7 +306,7 @@ export default function Vulnerabilities() {
       case "Medium":
         return "bg-yellow-500 text-black";
       case "Low":
-        return "bg-primary text-primary-foreground";
+        return "bg-sky-400 text-white";
       default:
         return "bg-gray-500 text-white";
     }
@@ -336,9 +336,8 @@ export default function Vulnerabilities() {
     {
       title: "Critical & High",
       value: (criticalCount + highCount).toString(),
-      change: criticalCount > 0 ? "Immediate attention required" : "Good",
-      changeType:
-        criticalCount > 0 ? ("negative" as const) : ("positive" as const),
+      change: "",
+      changeType: "neutral" as const,
       icon: AlertTriangle,
     },
     {
@@ -362,7 +361,14 @@ export default function Vulnerabilities() {
       key: "severity",
       label: "Severity",
       render: (value: string) => (
-        <Badge className={getSeverityColor(value)}>{value}</Badge>
+        <span
+          className={
+            "inline-flex items-center px-2 py-0.5 rounded border border-ui-04 text-xs font-semibold " +
+            getSeverityColor(value)
+          }
+        >
+          {value}
+        </span>
       ),
     },
     { key: "cve", label: "CVE ID" },
@@ -617,34 +623,48 @@ export default function Vulnerabilities() {
             <h3 className="carbon-type-productive-heading-02 text-text-01 mb-4">
               Vulnerability Severity Distribution
             </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-red-500 mb-1">
-                  {criticalCount}
+            {(() => {
+              const total = criticalCount + highCount + mediumCount + lowCount;
+              const entries = [
+                {
+                  key: "Critical",
+                  color: "bg-support-01",
+                  value: criticalCount,
+                },
+                { key: "High", color: "bg-orange-500", value: highCount },
+                { key: "Medium", color: "bg-yellow-500", value: mediumCount },
+                { key: "Low", color: "bg-sky-400", value: lowCount },
+              ];
+              return (
+                <div className="space-y-3">
+                  <div className="w-full h-3 flex overflow-hidden border border-ui-03 bg-layer-02 rounded">
+                    {entries.map((e) => (
+                      <div
+                        key={e.key}
+                        className={`${e.color}`}
+                        style={{
+                          width: `${total ? (e.value / total) * 100 : 0}%`,
+                        }}
+                        title={`${e.key}: ${e.value}`}
+                      />
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+                    {entries.map((e) => (
+                      <div key={e.key} className="flex items-center gap-2">
+                        <span
+                          className={`inline-block h-3 w-3 rounded ${e.color}`}
+                        />
+                        <span className="text-text-02">{e.key}:</span>
+                        <span className="text-text-01 font-medium">
+                          {e.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="carbon-type-label-01 text-text-02">
-                  Critical
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-500 mb-1">
-                  {highCount}
-                </div>
-                <div className="carbon-type-label-01 text-text-02">High</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-yellow-500 mb-1">
-                  {mediumCount}
-                </div>
-                <div className="carbon-type-label-01 text-text-02">Medium</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-primary mb-1">
-                  {lowCount}
-                </div>
-                <div className="carbon-type-label-01 text-text-02">Low</div>
-              </div>
-            </div>
+              );
+            })()}
           </div>
         </div>
 
@@ -656,8 +676,8 @@ export default function Vulnerabilities() {
                 Vulnerabilities by Cluster
               </h3>
               <p className="carbon-type-body-01 text-text-02 mb-4">
-                Each chart shows the distribution of severities per cluster. The
-                center number is the total vulnerabilities.
+                Each chart shows the distribution of severities per cluster
+                using a stacked bar. The label below shows counts.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {vulnerabilityData.clusterStatuses.map((cluster) => (
@@ -820,13 +840,14 @@ export default function Vulnerabilities() {
                     <h3 className="carbon-type-productive-heading-02 text-text-01">
                       {selectedVulnerability.cve}
                     </h3>
-                    <Badge
-                      className={getSeverityColor(
-                        selectedVulnerability.severity,
-                      )}
+                    <span
+                      className={
+                        "inline-flex items-center px-2 py-0.5 rounded border border-ui-04 text-xs font-semibold " +
+                        getSeverityColor(selectedVulnerability.severity)
+                      }
                     >
                       {selectedVulnerability.severity}
-                    </Badge>
+                    </span>
                   </div>
                   <p className="carbon-type-body-01 text-text-02 mb-3">
                     {selectedVulnerability.message}
