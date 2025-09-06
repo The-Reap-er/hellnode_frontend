@@ -7,6 +7,7 @@ import {
   CheckCircle,
   Server,
   Radar,
+  Package,
   Search,
   ChevronDown,
 } from "lucide-react";
