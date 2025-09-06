@@ -40,6 +40,7 @@ const App = () => (
             <Route path="/clusters" element={<ClusterDetails />} />
             <Route path="/docker" element={<DockerImages />} />
             <Route path="/scanning" element={<Scanning />} />
+            <Route path="/image-scanning" element={<ImageScanning />} />
             <Route path="/vulnerabilities" element={<Vulnerabilities />} />
             <Route
               path="/compliance"
