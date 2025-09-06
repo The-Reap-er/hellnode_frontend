@@ -39,7 +39,15 @@ const App = () => (
             <Route path="/clusters" element={<ClusterDetails />} />
             <Route path="/docker" element={<DockerImages />} />
             <Route path="/scanning" element={<Scanning />} />
-            <Route path="/image-scanning" element={<ImageScanning />} />
+            <Route
+              path="/image-scanning"
+              element={
+                <PlaceholderPage
+                  title="Image Scanning"
+                  description="Scan and analyze container images from registries and clusters. (Placeholder)"
+                />
+              }
+            />
             <Route path="/vulnerabilities" element={<Vulnerabilities />} />
             <Route
               path="/compliance"
