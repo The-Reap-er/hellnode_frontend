@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { MetricCard } from "@/components/ui/metric-card";
@@ -11,6 +11,11 @@ import {
   AlertTriangle,
   Server,
   Shield,
+  ArrowRight,
+  CheckCircle2,
+  XCircle,
+  MinusCircle,
+  GitCompare,
 } from "lucide-react";
 import { KubeconfigEntry } from "@shared/kubeconfig";
 import {
@@ -68,6 +73,151 @@ type AggregatedImageDetails = {
   }>;
 };
 
+// Types for vulnerability resolution
+type VulnerabilityResolutionResult = {
+  image_name: string;
+  original_tag: string;
+  latest_tag: string;
+  resolution_status: 'resolved' | 'partially_resolved' | 'unresolvable' | 'no_vulnerabilities';
+  message: string;
+  recommendation: string;
+  original_vulnerabilities: {
+    total: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    informational: number;
+  };
+  latest_vulnerabilities: {
+    total: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    informational: number;
+  };
+  timestamp: string;
+};
+
+// Hook for vulnerability resolution checking
+function useVulnerabilityResolution() {
+  const [status, setStatus] = useState<'idle' | 'loading' | 'completed' | 'failed'>('idle');
+  const [result, setResult] = useState<VulnerabilityResolutionResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<string>('');
+  const pollIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const cleanup = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  };
+
+  const startCheck = async (imageName: string) => {
+    cleanup(); // Clear any existing intervals
+    setStatus('loading');
+    setError(null);
+    setResult(null);
+    setProgress('Starting vulnerability check...');
+
+    try {
+      // Start the check
+      const startResponse = await fetch('http://localhost:8080/api/v2/security/image/check-resolution', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_name: imageName })
+      });
+
+      if (startResponse.status !== 202) {
+        const errorText = await startResponse.text();
+        throw new Error(`Failed to start check: ${errorText}`);
+      }
+
+      const { job_id } = await startResponse.json();
+      setProgress(`Job started: ${job_id}`);
+
+      // Poll for completion
+      pollIntervalRef.current = setInterval(async () => {
+        try {
+          const statusResponse = await fetch(`http://localhost:8080/api/v2/security/image/resolution-status/${job_id}`);
+
+          if (statusResponse.status === 404) {
+            cleanup();
+            setError('Job not found');
+            setStatus('failed');
+            return;
+          }
+
+          if (statusResponse.status !== 200) {
+            const errorText = await statusResponse.text();
+            throw new Error(`Failed to get status: ${errorText}`);
+          }
+
+          const jobStatus = await statusResponse.json();
+          setProgress(jobStatus.progress || 'Processing...');
+
+          if (jobStatus.status === 'completed') {
+            setResult(jobStatus.result);
+            setStatus('completed');
+
+            // Save to localStorage
+            const saved = JSON.parse(localStorage.getItem('vulnerabilityResolutions') || '{}');
+            saved[imageName] = {
+              result: jobStatus.result,
+              timestamp: new Date().toISOString()
+            };
+            localStorage.setItem('vulnerabilityResolutions', JSON.stringify(saved));
+
+            cleanup();
+          } else if (jobStatus.status === 'failed') {
+            setError(jobStatus.error || 'Job failed');
+            setStatus('failed');
+            cleanup();
+          }
+        } catch (err) {
+          cleanup();
+          setError(err instanceof Error ? err.message : 'Unknown error');
+          setStatus('failed');
+        }
+      }, 2000);
+
+      // Timeout after 2 minutes
+      timeoutRef.current = setTimeout(() => {
+        cleanup();
+        setError('Timeout waiting for job completion');
+        setStatus('failed');
+      }, 120000);
+
+    } catch (err) {
+      cleanup();
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      setStatus('failed');
+    }
+  };
+
+  const reset = () => {
+    cleanup();
+    setStatus('idle');
+    setResult(null);
+    setError(null);
+    setProgress('');
+  };
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => cleanup();
+  }, []);
+
+  return { status, result, error, progress, startCheck, reset };
+}
+
 export default function DockerImages() {
   const [dockerImages, setDockerImages] = useState<DockerImageSummary[]>([]);
   const [filteredImages, setFilteredImages] = useState<DockerImageSummary[]>(
@@ -90,6 +240,12 @@ export default function DockerImages() {
   const [pageSize, setPageSize] = useState(12);
   const [autoRefreshSec, setAutoRefreshSec] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Vulnerability resolution state
+  const [resolutionDialogOpen, setResolutionDialogOpen] = useState(false);
+  const [selectedImageForResolution, setSelectedImageForResolution] = useState<string | null>(null);
+  const [cachedResolutions, setCachedResolutions] = useState<Record<string, { result: VulnerabilityResolutionResult; timestamp: string }>>({});
+  const resolutionHook = useVulnerabilityResolution();
 
   // Load and aggregate docker images from all clusters
   useEffect(() => {
@@ -172,7 +328,7 @@ export default function DockerImages() {
     imageDetailsMap,
   ]);
 
-  // Load settings defaults
+  // Load settings defaults and cached resolutions
   useEffect(() => {
     try {
       const raw = localStorage.getItem("appSettings");
@@ -185,6 +341,12 @@ export default function DockerImages() {
           setOnlyWithVulns(s.onlyWithVulnsDefault);
         if (typeof s.onlyHighCriticalDefault === "boolean")
           setOnlyHighCritical(s.onlyHighCriticalDefault);
+      }
+
+      // Load cached resolutions
+      const cachedRaw = localStorage.getItem("vulnerabilityResolutions");
+      if (cachedRaw) {
+        setCachedResolutions(JSON.parse(cachedRaw));
       }
     } catch {}
   }, []);
@@ -364,16 +526,22 @@ export default function DockerImages() {
         Low: 3,
       };
       detailsMap.forEach((det) => {
+        // Sort CVEs by severity and count
         det.cves.sort((a, b) => {
           const sa = severityOrder[a.severity];
           const sb = severityOrder[b.severity];
           if (sa !== sb) return sa - sb;
           return b.count - a.count;
         });
-        det.severityCounts = { Critical: 0, High: 0, Medium: 0, Low: 0 };
-        det.cves.forEach((cve) => {
-          det.severityCounts[cve.severity] += 1;
-        });
+        
+        // Don't reset severityCounts here - they were already calculated during processing
+        // Just ensure all severity levels exist with at least 0
+        det.severityCounts = {
+          Critical: det.severityCounts.Critical || 0,
+          High: det.severityCounts.High || 0,
+          Medium: det.severityCounts.Medium || 0,
+          Low: det.severityCounts.Low || 0,
+        };
       });
 
       setDockerImages(sortedImages);
@@ -502,6 +670,27 @@ export default function DockerImages() {
   const openImageDialog = (image: string) => {
     setSelectedImage(image);
     setIsDialogOpen(true);
+  };
+
+  const handleCompareWithLatest = async (image: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    setSelectedImageForResolution(image);
+    setResolutionDialogOpen(true);
+
+    // Check if we have cached result
+    if (cachedResolutions[image]) {
+      // Show cached result
+      return;
+    }
+
+    // Start new check
+    await resolutionHook.startCheck(image);
+
+    // Reload cached resolutions from localStorage
+    const cachedRaw = localStorage.getItem("vulnerabilityResolutions");
+    if (cachedRaw) {
+      setCachedResolutions(JSON.parse(cachedRaw));
+    }
   };
 
   const selectedDetails = useMemo(() => {
@@ -691,7 +880,7 @@ export default function DockerImages() {
                 return (
                   <Card
                     key={img.image}
-                    className="bg-layer-01 border border-ui-03 hover:border-interactive-01 transition-colors cursor-pointer"
+                    className="bg-layer-01 border border-ui-03 hover:border-interactive-01 transition-colors cursor-pointer flex flex-col"
                     onClick={() => openImageDialog(img.image)}
                   >
                     <CardHeader>
@@ -707,7 +896,7 @@ export default function DockerImages() {
                         {img.image}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="pt-0">
+                    <CardContent className="pt-0 flex-1">
                       <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                         <div className="flex items-center justify-between">
                           <span className="text-text-02">Unique CVEs</span>
@@ -815,7 +1004,7 @@ export default function DockerImages() {
                         </div>
                       ) : null}
                     </CardContent>
-                    <CardFooter className="pt-0">
+                    <CardFooter className="pt-0 flex-col gap-2 mt-auto">
                       <div className="w-full flex items-center justify-between text-xs text-text-02">
                         <div className="truncate">
                           Containers:{" "}
@@ -828,6 +1017,13 @@ export default function DockerImages() {
                         </div>
                         <div className="ml-2 shrink-0">Details →</div>
                       </div>
+                      <button
+                        onClick={(e) => handleCompareWithLatest(img.image, e)}
+                        className="w-full flex items-center justify-center gap-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs transition-colors"
+                      >
+                        <GitCompare className="h-3 w-3" />
+                        Compare with Latest
+                      </button>
                     </CardFooter>
                   </Card>
                 );
@@ -950,6 +1146,213 @@ export default function DockerImages() {
         )}
       </div>
 
+      {/* Vulnerability Resolution Comparison Dialog */}
+      <Dialog open={resolutionDialogOpen} onOpenChange={(open) => {
+        setResolutionDialogOpen(open);
+        if (!open) {
+          resolutionHook.reset();
+        }
+      }}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <GitCompare className="h-5 w-5" />
+              Vulnerability Resolution Analysis
+            </DialogTitle>
+            <DialogDescription>
+              Comparing current image vulnerabilities with the latest available version
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedImageForResolution && (
+            <div className="space-y-6">
+              {/* Image Info */}
+              <div className="bg-layer-01 border border-ui-03 rounded p-4">
+                <div className="carbon-type-productive-heading-03 text-text-01 mb-2">
+                  Image: {selectedImageForResolution}
+                </div>
+              </div>
+
+              {/* Loading State */}
+              {resolutionHook.status === 'loading' && (
+                <div className="bg-layer-01 border border-ui-03 rounded p-6 text-center">
+                  <div className="flex flex-col items-center space-y-4">
+                    <div className="animate-spin h-8 w-8 border-2 border-interactive-01 border-t-transparent rounded-full" />
+                    <div>
+                      <h3 className="carbon-type-productive-heading-02 text-text-01 mb-2">
+                        Analyzing Vulnerabilities
+                      </h3>
+                      <p className="carbon-type-body-01 text-text-02">
+                        {resolutionHook.progress || 'Processing...'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Error State */}
+              {resolutionHook.status === 'failed' && (
+                <div className="bg-support-01 border border-red-700 rounded p-4">
+                  <div className="flex items-center gap-2 text-white">
+                    <XCircle className="h-5 w-5" />
+                    <div>
+                      <div className="font-semibold">Error</div>
+                      <div className="text-sm">{resolutionHook.error}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Completed State - Show cached or fresh result */}
+              {(() => {
+                const displayResult = resolutionHook.result || cachedResolutions[selectedImageForResolution]?.result;
+
+                if (!displayResult) return null;
+
+                const getStatusIcon = () => {
+                  switch (displayResult.resolution_status) {
+                    case 'resolved':
+                      return <CheckCircle2 className="h-6 w-6 text-green-500" />;
+                    case 'partially_resolved':
+                      return <MinusCircle className="h-6 w-6 text-yellow-500" />;
+                    case 'unresolvable':
+                      return <XCircle className="h-6 w-6 text-red-500" />;
+                    case 'no_vulnerabilities':
+                      return <Shield className="h-6 w-6 text-green-500" />;
+                  }
+                };
+
+                const getStatusColor = () => {
+                  switch (displayResult.resolution_status) {
+                    case 'resolved':
+                      return 'bg-green-500/10 border-green-500';
+                    case 'partially_resolved':
+                      return 'bg-yellow-500/10 border-yellow-500';
+                    case 'unresolvable':
+                      return 'bg-red-500/10 border-red-500';
+                    case 'no_vulnerabilities':
+                      return 'bg-green-500/10 border-green-500';
+                  }
+                };
+
+                return (
+                  <div className="space-y-6">
+                    {/* Status Summary */}
+                    <div className={`border rounded p-4 ${getStatusColor()}`}>
+                      <div className="flex items-start gap-3">
+                        {getStatusIcon()}
+                        <div className="flex-1">
+                          <h3 className="carbon-type-productive-heading-03 text-text-01 mb-1">
+                            {displayResult.message}
+                          </h3>
+                          <p className="carbon-type-body-01 text-text-02">
+                            {displayResult.recommendation}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Comparison Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Original Image */}
+                      <div className="bg-layer-01 border border-ui-03 rounded p-4">
+                        <h4 className="carbon-type-productive-heading-03 text-text-01 mb-3 flex items-center gap-2">
+                          <Package className="h-4 w-4" />
+                          Original Image ({displayResult.original_tag})
+                        </h4>
+                        <div className="space-y-3">
+                          <div className="text-sm text-text-02 break-all">
+                            {displayResult.image_name}:{displayResult.original_tag}
+                          </div>
+                          <div className="text-lg font-semibold text-text-01">
+                            {displayResult.original_vulnerabilities.total} Total Vulnerabilities
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="flex items-center justify-between p-2 bg-support-01 rounded">
+                              <span className="text-white">Critical</span>
+                              <span className="font-semibold text-white">
+                                {displayResult.original_vulnerabilities.critical}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between p-2 bg-orange-500 rounded">
+                              <span className="text-white">High</span>
+                              <span className="font-semibold text-white">
+                                {displayResult.original_vulnerabilities.high}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between p-2 bg-yellow-500 rounded">
+                              <span className="text-black">Medium</span>
+                              <span className="font-semibold text-black">
+                                {displayResult.original_vulnerabilities.medium}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between p-2 bg-sky-400 rounded">
+                              <span className="text-white">Low</span>
+                              <span className="font-semibold text-white">
+                                {displayResult.original_vulnerabilities.low}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Latest Image */}
+                      <div className="bg-layer-01 border border-ui-03 rounded p-4">
+                        <h4 className="carbon-type-productive-heading-03 text-text-01 mb-3 flex items-center gap-2">
+                          <Package className="h-4 w-4" />
+                          Latest Image ({displayResult.latest_tag})
+                        </h4>
+                        <div className="space-y-3">
+                          <div className="text-sm text-text-02 break-all">
+                            {displayResult.image_name}:{displayResult.latest_tag}
+                          </div>
+                          <div className="text-lg font-semibold text-text-01">
+                            {displayResult.latest_vulnerabilities.total} Total Vulnerabilities
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="flex items-center justify-between p-2 bg-support-01 rounded">
+                              <span className="text-white">Critical</span>
+                              <span className="font-semibold text-white">
+                                {displayResult.latest_vulnerabilities.critical}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between p-2 bg-orange-500 rounded">
+                              <span className="text-white">High</span>
+                              <span className="font-semibold text-white">
+                                {displayResult.latest_vulnerabilities.high}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between p-2 bg-yellow-500 rounded">
+                              <span className="text-black">Medium</span>
+                              <span className="font-semibold text-black">
+                                {displayResult.latest_vulnerabilities.medium}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between p-2 bg-sky-400 rounded">
+                              <span className="text-white">Low</span>
+                              <span className="font-semibold text-white">
+                                {displayResult.latest_vulnerabilities.low}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Cached timestamp */}
+                    {cachedResolutions[selectedImageForResolution] && (
+                      <div className="text-xs text-text-02 text-center">
+                        Last checked: {new Date(cachedResolutions[selectedImageForResolution].timestamp).toLocaleString()}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Image Vulnerabilities Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-3xl">
@@ -987,20 +1390,40 @@ export default function DockerImages() {
                   Vulnerability distribution
                 </div>
                 {(() => {
-                  const total = Object.values(
-                    selectedDetails.severityCounts,
-                  ).reduce((a, b) => a + b, 0);
+                  // Ensure all severity levels are present with at least 0 count
+                  const severityCounts = {
+                    Critical: selectedDetails.severityCounts.Critical || 0,
+                    High: selectedDetails.severityCounts.High || 0,
+                    Medium: selectedDetails.severityCounts.Medium || 0,
+                    Low: selectedDetails.severityCounts.Low || 0,
+                  };
+                  
+                  const total = Object.values(severityCounts).reduce((a, b) => a + b, 0);
+                  
                   const entries = [
                     { key: "Critical" as Severity, color: "bg-support-01" },
                     { key: "High" as Severity, color: "bg-orange-500" },
                     { key: "Medium" as Severity, color: "bg-yellow-500" },
                     { key: "Low" as Severity, color: "bg-sky-400" },
                   ];
-                  return total > 0 ? (
+                  
+                  // Check if there are any vulnerabilities at all
+                  const hasVulnerabilities = total > 0;
+                  
+                  if (!hasVulnerabilities) {
+                    return (
+                      <div className="text-text-02 text-sm">
+                        No vulnerabilities found.
+                      </div>
+                    );
+                  }
+
+                  return (
                     <div className="space-y-3">
                       <div className="w-full h-4 flex rounded overflow-hidden border border-ui-03 bg-layer-02">
                         {entries.map((e) => {
-                          const val = selectedDetails.severityCounts[e.key];
+                          const val = severityCounts[e.key] || 0;
+                          if (val <= 0) return null;
                           return (
                             <div
                               key={e.key}
@@ -1012,33 +1435,21 @@ export default function DockerImages() {
                         })}
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
-                        {entries.map((e) => (
-                          <div key={e.key} className="flex items-center gap-2">
-                            <span
-                              className={`inline-block h-3 w-3 rounded ${e.color}`}
-                            />
-                            <span className="text-text-02">{e.key}:</span>
-                            <span className="text-text-01 font-medium">
-                              {selectedDetails.severityCounts[e.key]}
-                            </span>
-                          </div>
-                        ))}
+                        {entries.map((e) => {
+                          const val = severityCounts[e.key] || 0;
+                          if (val <= 0) return null;
+                          return (
+                            <div key={e.key} className="flex items-center gap-2">
+                              <span className={`inline-block h-3 w-3 rounded ${e.color}`} />
+                              <span className="text-text-02">{e.key}:</span>
+                              <span className="font-medium">{val}</span>
+                            </div>
+                          );
+                        })}
                       </div>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-text-02">
-                      No vulnerabilities.
                     </div>
                   );
                 })()}
-                <div className="mt-4">
-                  <Link
-                    to={`/vulnerabilities?image=${encodeURIComponent(selectedDetails.image)}`}
-                    className="inline-flex items-center px-3 py-2 border border-ui-04 text-text-01 rounded carbon-type-body-01 hover:bg-ui-01 transition-colors text-sm"
-                  >
-                    View in Vulnerabilities →
-                  </Link>
-                </div>
               </div>
 
               {/* Locations */}
@@ -1063,12 +1474,12 @@ export default function DockerImages() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-sm text-text-02">No locations.</div>
+                  <div className="text-sm text-text-02">No locations found.</div>
                 )}
               </div>
             </div>
           ) : (
-            <div className="text-sm text-text-02">No data.</div>
+            <div className="text-sm text-text-02">No data available.</div>
           )}
         </DialogContent>
       </Dialog>

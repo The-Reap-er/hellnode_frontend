@@ -13,6 +13,9 @@ import ScanResults from "./pages/ScanResults";
 import KubeconfigManagement from "./pages/KubeconfigManagement";
 import ClusterDetails from "./pages/ClusterDetails";
 import DockerImages from "./pages/DockerImages";
+import DockerfileScanner from "./pages/DockerfileScanner";
+import ManifestScanner from "./pages/ManifestScanner";
+import ImageScanning from "./pages/ImageScanning";
 import Scanning from "./pages/Scanning";
 import Vulnerabilities from "./pages/Vulnerabilities";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
@@ -38,16 +41,10 @@ const App = () => (
             <Route path="/kubernetes" element={<KubeconfigManagement />} />
             <Route path="/clusters" element={<ClusterDetails />} />
             <Route path="/docker" element={<DockerImages />} />
+            <Route path="/docker/scan" element={<DockerfileScanner />} />
+            <Route path="/kubernetes/manifest-scan" element={<ManifestScanner />} />
             <Route path="/scanning" element={<Scanning />} />
-            <Route
-              path="/image-scanning"
-              element={
-                <PlaceholderPage
-                  title="Image Scanning"
-                  description="Scan and analyze container images from registries and clusters. (Placeholder)"
-                />
-              }
-            />
+            <Route path="/image-scanning" element={<ImageScanning />} />
             <Route path="/vulnerabilities" element={<Vulnerabilities />} />
             <Route
               path="/compliance"

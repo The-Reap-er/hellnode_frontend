@@ -30,13 +30,18 @@ export function KubeconfigTable({
         },
       );
 
-      if (!response.ok) {
+      // Treat 404 as success since the kubeconfig is already gone
+      if (!response.ok && response.status !== 404) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data: KubeconfigDeleteResponse = await response.json();
-      console.log("Delete response:", data);
+      // Only try to parse JSON if there's content
+      if (response.status !== 204 && response.status !== 404) {
+        const data: KubeconfigDeleteResponse = await response.json();
+        console.log("Delete response:", data);
+      }
 
+      // Call onDelete in all cases (success, 404, etc.)
       onDelete(name);
     } catch (error) {
       console.error("Delete error:", error);

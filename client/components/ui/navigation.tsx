@@ -29,6 +29,7 @@ const navigation: Array<any> = [
     children: [
       { name: "Clusters", href: "/clusters", icon: Server },
       { name: "Kubeconfigs", href: "/kubernetes", icon: Cloud },
+      { name: "Manifest Scanner", href: "/kubernetes/manifest-scan", icon: Search },
     ],
   },
   {
@@ -36,6 +37,7 @@ const navigation: Array<any> = [
     icon: Container,
     children: [
       { name: "Docker Images", href: "/docker", icon: Container },
+      { name: "Dockerfile Scanner", href: "/docker/scan", icon: Search },
       { name: "Cluster Images Scanning", href: "/scanning", icon: Radar },
       { name: "Image Scanning", href: "/image-scanning", icon: Package },
     ],

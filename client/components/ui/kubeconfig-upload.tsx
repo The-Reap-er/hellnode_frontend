@@ -69,13 +69,15 @@ export function KubeconfigUpload({ onUploadSuccess }: KubeconfigUploadProps) {
       }
 
       const data: KubeconfigValidationResponse = await response.json();
-
-      if (data.valid && data.stored) {
-        onUploadSuccess(data);
+      
+      // Always call onUploadSuccess for any successful API response
+      // The validation status (valid/invalid) will be handled in the parent component
+      onUploadSuccess(data);
+      
+      // Reset form if the upload was successful and stored
+      if (data.stored) {
         setName("");
         setSelectedFile(null);
-      } else {
-        setError(data.message || "Kubeconfig validation failed");
       }
     } catch (error) {
       console.error("Upload error:", error);
