@@ -19,6 +19,8 @@ import ImageScanning from "./pages/ImageScanning";
 import Scanning from "./pages/Scanning";
 import Vulnerabilities from "./pages/Vulnerabilities";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
+import VulnerabilityDashboard from "./pages/VulnerabilityDashboard";
+import ImageDashboard from "./pages/ImageDashboard";
 import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
@@ -46,6 +48,8 @@ const App = () => (
             <Route path="/scanning" element={<Scanning />} />
             <Route path="/image-scanning" element={<ImageScanning />} />
             <Route path="/vulnerabilities" element={<Vulnerabilities />} />
+            <Route path="/dashboard" element={<VulnerabilityDashboard />} />
+            <Route path="/dashboard/image/*" element={<ImageDashboard />} />
             <Route
               path="/compliance"
               element={

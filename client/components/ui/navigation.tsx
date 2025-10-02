@@ -47,6 +47,11 @@ const navigation: Array<any> = [
     icon: Radar,
     children: [
       {
+        name: "Dashboard",
+        href: "/dashboard",
+        icon: Activity,
+      },
+      {
         name: "Vulnerabilities",
         href: "/vulnerabilities",
         icon: AlertTriangle,
