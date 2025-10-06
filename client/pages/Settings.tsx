@@ -4,6 +4,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "next-themes";
+import { artifactoryApi } from "@/services/artifactoryApi";
+import { CheckCircle, XCircle, RefreshCw, LogIn, LogOut } from "lucide-react";
 
 interface AppSettings {
   theme?: "light" | "dark";
@@ -44,6 +46,18 @@ export default function Settings() {
   const [onlyHighCriticalDefault, setOnlyHighCriticalDefault] =
     useState<boolean>(initial.onlyHighCriticalDefault ?? false);
 
+  // Artifactory state
+  const [artifactoryUrl, setArtifactoryUrl] = useState("");
+  const [artifactoryUsername, setArtifactoryUsername] = useState("");
+  const [artifactoryToken, setArtifactoryToken] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isCheckingConnectivity, setIsCheckingConnectivity] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [connectivityStatus, setConnectivityStatus] = useState<{
+    connected: boolean;
+    message: string;
+  } | null>(null);
+
   useEffect(() => {
     if (initial.theme) setTheme(initial.theme);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -64,6 +78,113 @@ export default function Settings() {
     });
   };
 
+  const handleArtifactoryLogin = async () => {
+    if (!artifactoryUsername || !artifactoryToken) {
+      toast({
+        title: "Missing credentials",
+        description: "Please provide username and token",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoggingIn(true);
+    try {
+      const result = await artifactoryApi.login({
+        username: artifactoryUsername,
+        token: artifactoryToken,
+        url: artifactoryUrl || undefined,
+      });
+
+      toast({
+        title: "Login successful",
+        description: result.message,
+      });
+
+      // Check connectivity after successful login
+      handleCheckConnectivity();
+    } catch (error: any) {
+      toast({
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleCheckConnectivity = async () => {
+    if (!artifactoryUrl) {
+      toast({
+        title: "Missing URL",
+        description: "Please provide Artifactory URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCheckingConnectivity(true);
+    try {
+      const result = await artifactoryApi.checkConnectivityGet(artifactoryUrl);
+      setConnectivityStatus({
+        connected: result.connected,
+        message: result.message,
+      });
+
+      toast({
+        title: result.connected ? "Connected" : "Not connected",
+        description: result.message,
+        variant: result.connected ? "default" : "destructive",
+      });
+    } catch (error: any) {
+      setConnectivityStatus({
+        connected: false,
+        message: error.message,
+      });
+
+      toast({
+        title: "Connectivity check failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsCheckingConnectivity(false);
+    }
+  };
+
+  const handleArtifactoryLogout = async () => {
+    if (!artifactoryUrl) {
+      toast({
+        title: "Missing URL",
+        description: "Please provide Artifactory URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoggingOut(true);
+    try {
+      const result = await artifactoryApi.logout(artifactoryUrl);
+
+      toast({
+        title: "Logout successful",
+        description: result.message,
+      });
+
+      setConnectivityStatus(null);
+      setArtifactoryToken("");
+    } catch (error: any) {
+      toast({
+        title: "Logout failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="col-span-full space-y-8">
@@ -72,7 +193,7 @@ export default function Settings() {
             Settings
           </h1>
           <p className="carbon-type-body-02 text-text-02">
-            Configure appearance and Docker Images defaults. Changes are saved
+            Configure appearance, Docker Images defaults, and integrations. Changes are saved
             locally and applied immediately.
           </p>
         </div>
@@ -163,6 +284,148 @@ export default function Settings() {
             >
               Save Settings
             </button>
+          </div>
+        </section>
+
+        {/* Artifactory Integration */}
+        <section className="bg-layer-01 border border-ui-03 rounded p-6">
+          <h2 className="carbon-type-productive-heading-02 text-text-01 mb-4">
+            Artifactory Integration
+          </h2>
+          <p className="carbon-type-body-02 text-text-02 mb-6">
+            Connect to your Artifactory registry to scan and manage container images
+          </p>
+
+          <div className="space-y-4">
+            {/* Artifactory URL */}
+            <div>
+              <label className="block carbon-type-label-01 text-text-02 mb-2">
+                Artifactory URL
+              </label>
+              <Input
+                type="text"
+                value={artifactoryUrl}
+                onChange={(e) => setArtifactoryUrl(e.target.value)}
+                placeholder="artifactory.example.com"
+                className="w-full"
+              />
+              <p className="carbon-type-label-01 text-text-03 mt-1">
+                Enter your Artifactory registry URL (without protocol)
+              </p>
+            </div>
+
+            {/* Username */}
+            <div>
+              <label className="block carbon-type-label-01 text-text-02 mb-2">
+                Username
+              </label>
+              <Input
+                type="text"
+                value={artifactoryUsername}
+                onChange={(e) => setArtifactoryUsername(e.target.value)}
+                placeholder="your_username"
+                className="w-full"
+              />
+            </div>
+
+            {/* API Token */}
+            <div>
+              <label className="block carbon-type-label-01 text-text-02 mb-2">
+                API Token
+              </label>
+              <Input
+                type="password"
+                value={artifactoryToken}
+                onChange={(e) => setArtifactoryToken(e.target.value)}
+                placeholder="your_api_token"
+                className="w-full"
+              />
+              <p className="carbon-type-label-01 text-text-03 mt-1">
+                Generate an API token from your Artifactory profile
+              </p>
+            </div>
+
+            {/* Connectivity Status */}
+            {connectivityStatus && (
+              <div className={`p-4 rounded border flex items-start gap-3 ${
+                connectivityStatus.connected
+                  ? 'bg-green-500/10 border-green-500/20'
+                  : 'bg-red-500/10 border-red-500/20'
+              }`}>
+                {connectivityStatus.connected ? (
+                  <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <XCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                )}
+                <div>
+                  <div className={`carbon-type-body-01 font-medium ${
+                    connectivityStatus.connected ? 'text-green-500' : 'text-red-500'
+                  }`}>
+                    {connectivityStatus.connected ? 'Connected' : 'Not Connected'}
+                  </div>
+                  <div className="carbon-type-body-02 text-text-02 mt-1">
+                    {connectivityStatus.message}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex flex-wrap gap-3 pt-2">
+              <button
+                onClick={handleArtifactoryLogin}
+                disabled={isLoggingIn}
+                className="px-4 py-2 bg-interactive-01 hover:bg-interactive-01-hover text-white rounded carbon-type-body-01 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isLoggingIn ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Logging in...
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="h-4 w-4" />
+                    Login
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleCheckConnectivity}
+                disabled={isCheckingConnectivity}
+                className="px-4 py-2 bg-layer-02 hover:bg-layer-hover-01 border border-ui-04 text-text-01 rounded carbon-type-body-01 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isCheckingConnectivity ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Checking...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4" />
+                    Check Connectivity
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleArtifactoryLogout}
+                disabled={isLoggingOut}
+                className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-500 rounded carbon-type-body-01 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isLoggingOut ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Logging out...
+                  </>
+                ) : (
+                  <>
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </section>
       </div>

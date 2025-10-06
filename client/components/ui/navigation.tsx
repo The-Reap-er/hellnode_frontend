@@ -10,6 +10,7 @@ import {
   Package,
   Search,
   ChevronDown,
+  Layers,
 } from "lucide-react";
 import { Cloud } from "@carbon/icons-react";
 import { Link, useLocation } from "react-router-dom";
@@ -55,6 +56,11 @@ const navigation: Array<any> = [
         name: "Vulnerabilities",
         href: "/vulnerabilities",
         icon: AlertTriangle,
+      },
+      {
+        name: "Layers",
+        href: "/security/layers",
+        icon: Layers,
       },
     ],
   },

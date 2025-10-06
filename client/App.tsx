@@ -21,6 +21,7 @@ import Vulnerabilities from "./pages/Vulnerabilities";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
 import VulnerabilityDashboard from "./pages/VulnerabilityDashboard";
 import ImageDashboard from "./pages/ImageDashboard";
+import LayerAnalysis from "./pages/LayerAnalysis";
 import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/vulnerabilities" element={<Vulnerabilities />} />
             <Route path="/dashboard" element={<VulnerabilityDashboard />} />
             <Route path="/dashboard/image/*" element={<ImageDashboard />} />
+            <Route path="/security/layers" element={<LayerAnalysis />} />
             <Route
               path="/compliance"
               element={
