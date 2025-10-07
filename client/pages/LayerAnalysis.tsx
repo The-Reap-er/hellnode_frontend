@@ -402,7 +402,7 @@ export default function LayerAnalysis() {
             )}
 
             {/* Single Analysis Result */}
-            {analysis && !compareResult && (
+            {analysis && !compareResult && analysis?.efficiency && analysis?.layers && (
               <>
                 {/* Efficiency Metrics */}
                 <div className="bg-layer-01 border border-ui-03 rounded p-6">
@@ -509,97 +509,23 @@ export default function LayerAnalysis() {
                         {expandedLayers.has(index) && (
                           <div className="px-4 pb-4 pl-12 border-t border-ui-03 bg-layer-02">
                             <div className="pt-4 space-y-4">
-                              {/* File Change Summary */}
-                              <div className="grid grid-cols-3 gap-3">
-                                <div className="bg-layer-01 p-3 rounded">
-                                  <div className="flex items-center gap-2 mb-1 carbon-type-label-01">
-                                    <Plus className="h-3 w-3 text-green-500" />
-                                    <span className="text-green-500">Added Files</span>
-                                  </div>
-                                  <div className="text-text-01 font-mono carbon-type-body-01">{layer.files_added.length}</div>
+                              {/* Full Command Display */}
+                              <div className="bg-layer-01 p-4 rounded">
+                                <div className="carbon-type-label-01 text-text-02 mb-2">Layer Command</div>
+                                <div className="bg-field-01 p-3 rounded carbon-type-code-02 text-text-01 whitespace-pre-wrap break-words font-mono">
+                                  {layer.command}
                                 </div>
-                                <div className="bg-layer-01 p-3 rounded">
-                                  <div className="flex items-center gap-2 mb-1 carbon-type-label-01">
-                                    <Edit3 className="h-3 w-3 text-yellow-500" />
-                                    <span className="text-yellow-500">Modified Files</span>
-                                  </div>
-                                  <div className="text-text-01 font-mono carbon-type-body-01">{layer.files_modified.length}</div>
-                                </div>
-                                <div className="bg-layer-01 p-3 rounded">
-                                  <div className="flex items-center gap-2 mb-1 carbon-type-label-01">
-                                    <Minus className="h-3 w-3 text-red-500" />
-                                    <span className="text-red-500">Removed Files</span>
-                                  </div>
-                                  <div className="text-text-01 font-mono carbon-type-body-01">{layer.files_removed.length}</div>
-                                </div>
+                                <button
+                                  onClick={() => {
+                                    // Placeholder for future AI recommendation feature
+                                    alert('AI command recommendation feature coming soon!');
+                                  }}
+                                  className="mt-3 px-4 py-2 bg-interactive-01 hover:bg-interactive-01-hover text-white rounded carbon-type-body-01 font-medium flex items-center gap-2"
+                                >
+                                  <RefreshCw className="h-4 w-4" />
+                                  Recommend Better Command
+                                </button>
                               </div>
-
-                              {/* File Lists */}
-                              {layer.files_added.length > 0 && (
-                                <div className="bg-layer-01 p-3 rounded">
-                                  <div className="carbon-type-label-01 text-green-500 mb-2 flex items-center gap-2">
-                                    <Plus className="h-3 w-3" />
-                                    Added Files ({layer.files_added.length})
-                                  </div>
-                                  <div className="max-h-48 overflow-y-auto space-y-1">
-                                    {layer.files_added.slice(0, 50).map((file, idx) => (
-                                      <div key={idx} className="carbon-type-code-02 text-text-02 flex items-center justify-between py-1 border-b border-ui-03 last:border-0">
-                                        <span className="truncate flex-1">{file.path}</span>
-                                        <span className="text-text-03 ml-2 flex-shrink-0">{file.size_human}</span>
-                                      </div>
-                                    ))}
-                                    {layer.files_added.length > 50 && (
-                                      <div className="carbon-type-label-01 text-text-03 pt-2">
-                                        + {layer.files_added.length - 50} more files
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                              {layer.files_modified.length > 0 && (
-                                <div className="bg-layer-01 p-3 rounded">
-                                  <div className="carbon-type-label-01 text-yellow-500 mb-2 flex items-center gap-2">
-                                    <Edit3 className="h-3 w-3" />
-                                    Modified Files ({layer.files_modified.length})
-                                  </div>
-                                  <div className="max-h-48 overflow-y-auto space-y-1">
-                                    {layer.files_modified.slice(0, 50).map((file, idx) => (
-                                      <div key={idx} className="carbon-type-code-02 text-text-02 flex items-center justify-between py-1 border-b border-ui-03 last:border-0">
-                                        <span className="truncate flex-1">{file.path}</span>
-                                        <span className="text-text-03 ml-2 flex-shrink-0">{file.size_human}</span>
-                                      </div>
-                                    ))}
-                                    {layer.files_modified.length > 50 && (
-                                      <div className="carbon-type-label-01 text-text-03 pt-2">
-                                        + {layer.files_modified.length - 50} more files
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                              {layer.files_removed.length > 0 && (
-                                <div className="bg-layer-01 p-3 rounded">
-                                  <div className="carbon-type-label-01 text-red-500 mb-2 flex items-center gap-2">
-                                    <Minus className="h-3 w-3" />
-                                    Removed Files ({layer.files_removed.length})
-                                  </div>
-                                  <div className="max-h-48 overflow-y-auto space-y-1">
-                                    {layer.files_removed.slice(0, 50).map((file, idx) => (
-                                      <div key={idx} className="carbon-type-code-02 text-text-02 flex items-center justify-between py-1 border-b border-ui-03 last:border-0">
-                                        <span className="truncate flex-1">{file.path}</span>
-                                        <span className="text-text-03 ml-2 flex-shrink-0">{file.size_human}</span>
-                                      </div>
-                                    ))}
-                                    {layer.files_removed.length > 50 && (
-                                      <div className="carbon-type-label-01 text-text-03 pt-2">
-                                        + {layer.files_removed.length - 50} more files
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
 
                               {/* Layer ID/Digest */}
                               {(layer.digest || layer.id) && (

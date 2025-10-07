@@ -38,7 +38,7 @@ export const diveApi = {
 
   // Get latest analysis by image name
   async getAnalysisByImageName(imageName: string): Promise<DiveAnalysisResult> {
-    const response = await fetch(`${BASE_URL}/image/${encodeURIComponent(imageName)}`);
+    const response = await fetch(`${BASE_URL}/image?image_name=${encodeURIComponent(imageName)}`);
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'No analysis found' }));
       throw new Error(error.error || 'No analysis found for this image');
