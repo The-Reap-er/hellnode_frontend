@@ -11,6 +11,7 @@ import {
   Search,
   ChevronDown,
   Layers,
+  GitBranch,
 } from "lucide-react";
 import { Cloud } from "@carbon/icons-react";
 import { Link, useLocation } from "react-router-dom";
@@ -62,12 +63,25 @@ const navigation: Array<any> = [
         href: "/security/layers",
         icon: Layers,
       },
+      {
+        name: "Hardened Images",
+        href: "/security/hardened-images",
+        icon: Package,
+      },
     ],
   },
   {
     name: "Cloud",
     icon: Cloud,
     children: [{ name: "Compliance", href: "/compliance", icon: CheckCircle }],
+  },
+  {
+    name: "Integrations",
+    icon: GitBranch,
+    children: [
+      { name: "GitLab", href: "/integrations/gitlab", icon: GitBranch },
+      { name: "Security Jobs", href: "/security/jobs", icon: GitBranch },
+    ],
   },
   { name: "Settings", href: "/settings", icon: LucideSettings },
 ];

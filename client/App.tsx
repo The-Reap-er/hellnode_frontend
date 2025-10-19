@@ -23,6 +23,9 @@ import VulnerabilityDashboard from "./pages/VulnerabilityDashboard";
 import ImageDashboard from "./pages/ImageDashboard";
 import LayerAnalysis from "./pages/LayerAnalysis";
 import Settings from "./pages/Settings";
+import HardenedImagesRegistry from "./pages/HardenedImagesRegistry";
+import GitLabIntegration from "./pages/GitLabIntegration";
+import SecurityJobs from "./pages/SecurityJobs";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +55,7 @@ const App = () => (
             <Route path="/dashboard" element={<VulnerabilityDashboard />} />
             <Route path="/dashboard/image/*" element={<ImageDashboard />} />
             <Route path="/security/layers" element={<LayerAnalysis />} />
+            <Route path="/security/hardened-images" element={<HardenedImagesRegistry />} />
             <Route
               path="/compliance"
               element={
@@ -62,6 +66,8 @@ const App = () => (
               }
             />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/integrations/gitlab" element={<GitLabIntegration />} />
+            <Route path="/security/jobs" element={<SecurityJobs />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

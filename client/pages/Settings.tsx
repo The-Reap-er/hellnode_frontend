@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "next-themes";
 import { artifactoryApi } from "@/services/artifactoryApi";
+import { gitlabApi } from "@/services/gitlabApi";
 import { CheckCircle, XCircle, RefreshCw, LogIn, LogOut } from "lucide-react";
 
 interface AppSettings {
@@ -58,8 +59,28 @@ export default function Settings() {
     message: string;
   } | null>(null);
 
+  // GitLab state - Load from localStorage
+  const [gitlabUrl, setGitlabUrl] = useState(() => {
+    return localStorage.getItem("gitlab_url") || "gitlab.com";
+  });
+  const [gitlabUsername, setGitlabUsername] = useState(() => {
+    return localStorage.getItem("gitlab_username") || "";
+  });
+  const [gitlabToken, setGitlabToken] = useState("");
+  const [isGitlabLoggingIn, setIsGitlabLoggingIn] = useState(false);
+  const [isGitlabCheckingConnectivity, setIsGitlabCheckingConnectivity] = useState(false);
+  const [isGitlabLoggingOut, setIsGitlabLoggingOut] = useState(false);
+  const [gitlabConnectivityStatus, setGitlabConnectivityStatus] = useState<{
+    connected: boolean;
+    message: string;
+  } | null>(null);
+
   useEffect(() => {
     if (initial.theme) setTheme(initial.theme);
+    // Check GitLab connectivity on mount
+    if (gitlabUrl) {
+      handleGitlabCheckConnectivity();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -182,6 +203,106 @@ export default function Settings() {
       });
     } finally {
       setIsLoggingOut(false);
+    }
+  };
+
+  // GitLab handlers
+  const handleGitlabLogin = async () => {
+    if (!gitlabToken) {
+      toast({
+        title: "Missing credentials",
+        description: "Please provide GitLab token",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGitlabLoggingIn(true);
+    try {
+      const result = await gitlabApi.login({
+        username: gitlabUsername || undefined,
+        token: gitlabToken,
+        url: gitlabUrl || undefined,
+      });
+
+      // Save to localStorage
+      localStorage.setItem("gitlab_url", gitlabUrl || "gitlab.com");
+      if (gitlabUsername) {
+        localStorage.setItem("gitlab_username", gitlabUsername);
+      }
+
+      toast({
+        title: "Login successful",
+        description: result.message,
+      });
+
+      // Check connectivity after successful login
+      handleGitlabCheckConnectivity();
+    } catch (error: any) {
+      toast({
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsGitlabLoggingIn(false);
+    }
+  };
+
+  const handleGitlabCheckConnectivity = async () => {
+    setIsGitlabCheckingConnectivity(true);
+    try {
+      const result = await gitlabApi.checkConnectivityGet(gitlabUrl || undefined);
+      setGitlabConnectivityStatus({
+        connected: result.connected,
+        message: result.message,
+      });
+
+      toast({
+        title: result.connected ? "Connected" : "Not connected",
+        description: result.message,
+        variant: result.connected ? "default" : "destructive",
+      });
+    } catch (error: any) {
+      setGitlabConnectivityStatus({
+        connected: false,
+        message: error.message,
+      });
+
+      toast({
+        title: "Connectivity check failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsGitlabCheckingConnectivity(false);
+    }
+  };
+
+  const handleGitlabLogout = async () => {
+    setIsGitlabLoggingOut(true);
+    try {
+      const result = await gitlabApi.logout(gitlabUrl || undefined);
+
+      // Clear localStorage
+      localStorage.removeItem("gitlab_url");
+      localStorage.removeItem("gitlab_username");
+
+      toast({
+        title: "Logout successful",
+        description: result.message,
+      });
+
+      setGitlabConnectivityStatus(null);
+      setGitlabToken("");
+    } catch (error: any) {
+      toast({
+        title: "Logout failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsGitlabLoggingOut(false);
     }
   };
 
@@ -414,6 +535,148 @@ export default function Settings() {
                 className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-500 rounded carbon-type-body-01 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {isLoggingOut ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Logging out...
+                  </>
+                ) : (
+                  <>
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* GitLab Integration */}
+        <section className="bg-layer-01 border border-ui-03 rounded p-6">
+          <h2 className="carbon-type-productive-heading-02 text-text-01 mb-4">
+            GitLab Integration
+          </h2>
+          <p className="carbon-type-body-02 text-text-02 mb-6">
+            Connect to your GitLab instance to browse repositories and scan Dockerfiles
+          </p>
+
+          <div className="space-y-4">
+            {/* GitLab URL */}
+            <div>
+              <label className="block carbon-type-label-01 text-text-02 mb-2">
+                GitLab URL
+              </label>
+              <Input
+                type="text"
+                value={gitlabUrl}
+                onChange={(e) => setGitlabUrl(e.target.value)}
+                placeholder="gitlab.com or git.example.com"
+                className="w-full"
+              />
+              <p className="carbon-type-label-01 text-text-03 mt-1">
+                Enter your GitLab instance URL (without protocol)
+              </p>
+            </div>
+
+            {/* Username (optional) */}
+            <div>
+              <label className="block carbon-type-label-01 text-text-02 mb-2">
+                Username (optional)
+              </label>
+              <Input
+                type="text"
+                value={gitlabUsername}
+                onChange={(e) => setGitlabUsername(e.target.value)}
+                placeholder="your_username"
+                className="w-full"
+              />
+            </div>
+
+            {/* Personal Access Token */}
+            <div>
+              <label className="block carbon-type-label-01 text-text-02 mb-2">
+                Personal Access Token
+              </label>
+              <Input
+                type="password"
+                value={gitlabToken}
+                onChange={(e) => setGitlabToken(e.target.value)}
+                placeholder="glpat-xxxxxxxxxxxxxxxxxxxx"
+                className="w-full"
+              />
+              <p className="carbon-type-label-01 text-text-03 mt-1">
+                Generate a personal access token from GitLab Settings → Access Tokens (requires read_api, read_repository scopes)
+              </p>
+            </div>
+
+            {/* Connectivity Status */}
+            {gitlabConnectivityStatus && (
+              <div className={`p-4 rounded border flex items-start gap-3 ${
+                gitlabConnectivityStatus.connected
+                  ? 'bg-green-500/10 border-green-500/20'
+                  : 'bg-red-500/10 border-red-500/20'
+              }`}>
+                {gitlabConnectivityStatus.connected ? (
+                  <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <XCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                )}
+                <div>
+                  <div className={`carbon-type-body-01 font-medium ${
+                    gitlabConnectivityStatus.connected ? 'text-green-500' : 'text-red-500'
+                  }`}>
+                    {gitlabConnectivityStatus.connected ? 'Connected' : 'Not Connected'}
+                  </div>
+                  <div className="carbon-type-body-02 text-text-02 mt-1">
+                    {gitlabConnectivityStatus.message}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex flex-wrap gap-3 pt-2">
+              <button
+                onClick={handleGitlabLogin}
+                disabled={isGitlabLoggingIn}
+                className="px-4 py-2 bg-interactive-01 hover:bg-interactive-01-hover text-white rounded carbon-type-body-01 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isGitlabLoggingIn ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Logging in...
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="h-4 w-4" />
+                    Login
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleGitlabCheckConnectivity}
+                disabled={isGitlabCheckingConnectivity}
+                className="px-4 py-2 bg-layer-02 hover:bg-layer-hover-01 border border-ui-04 text-text-01 rounded carbon-type-body-01 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isGitlabCheckingConnectivity ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Checking...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4" />
+                    Check Connectivity
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleGitlabLogout}
+                disabled={isGitlabLoggingOut}
+                className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-500 rounded carbon-type-body-01 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isGitlabLoggingOut ? (
                   <>
                     <RefreshCw className="h-4 w-4 animate-spin" />
                     Logging out...
