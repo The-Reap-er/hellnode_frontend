@@ -18,6 +18,11 @@ import {
   ExternalLink,
   Code,
   AlertCircle,
+  Container,
+  Layers,
+  Shield,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +59,9 @@ export default function GitLabIntegration() {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [isLoadingFile, setIsLoadingFile] = useState(false);
+  const [extractedImages, setExtractedImages] = useState<Array<{ image: string; usage: string; stage?: string }>>([]);
+  const [scanningImages, setScanningImages] = useState<Set<string>>(new Set());
+  const [scanResults, setScanResults] = useState<Map<string, any>>(new Map());
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [projectsWithDockerfiles, setProjectsWithDockerfiles] = useState<Set<number>>(new Set());
@@ -348,12 +356,81 @@ export default function GitLabIntegration() {
     }
   };
 
+  const extractImagesFromDockerfile = (content: string) => {
+    const images: Array<{ image: string; usage: string; stage?: string }> = [];
+    const lines = content.split('\n');
+
+    let currentStage: string | undefined;
+    let isMultiStage = false;
+
+    // Check if it's a multi-stage build
+    const stagePattern = /^FROM\s+.*\s+AS\s+(\S+)/i;
+    for (const line of lines) {
+      if (stagePattern.test(line)) {
+        isMultiStage = true;
+        break;
+      }
+    }
+
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+
+      // Skip comments and empty lines
+      if (trimmedLine.startsWith('#') || !trimmedLine) continue;
+
+      // Match FROM instructions
+      const fromMatch = trimmedLine.match(/^FROM\s+(?:--platform=\S+\s+)?(\S+)(?:\s+AS\s+(\S+))?/i);
+      if (fromMatch) {
+        const imageName = fromMatch[1];
+        const stageName = fromMatch[2];
+
+        // Skip if it's referencing a previous stage
+        if (images.some(img => img.stage === imageName)) {
+          currentStage = stageName;
+          continue;
+        }
+
+        let usage = 'base';
+        if (isMultiStage) {
+          if (stageName) {
+            usage = 'builder';
+            currentStage = stageName;
+          } else {
+            usage = 'final';
+          }
+        }
+
+        images.push({
+          image: imageName,
+          usage,
+          stage: stageName,
+        });
+      }
+
+      // Match COPY --from instructions
+      const copyFromMatch = trimmedLine.match(/^COPY\s+--from=(\S+)/i);
+      if (copyFromMatch) {
+        const fromStage = copyFromMatch[1];
+        // If it's not a stage name, it might be an external image
+        if (!images.some(img => img.stage === fromStage) && !fromStage.match(/^\d+$/)) {
+          images.push({
+            image: fromStage,
+            usage: 'external-copy',
+          });
+        }
+      }
+    }
+
+    return images;
+  };
+
   const loadFileContent = async (filePath: string) => {
     if (!selectedProject) return;
 
     setIsLoadingFile(true);
     setSelectedFile(filePath);
     setFileContent(null);
+    setExtractedImages([]);
 
     try {
       const result = await gitlabApi.getFile(selectedProject.id, filePath, {
@@ -362,6 +439,15 @@ export default function GitLabIntegration() {
       });
       const decoded = gitlabApi.decodeFileContent(result.content);
       setFileContent(decoded);
+
+      // Extract images if it's a Dockerfile
+      if (dockerfilePaths.has(filePath)) {
+        const images = extractImagesFromDockerfile(decoded);
+        setExtractedImages(images);
+
+        // Load existing scan results for these images
+        await loadExistingScanResults(images.map(img => img.image));
+      }
     } catch (error: any) {
       toast({
         title: "Failed to load file",
@@ -371,6 +457,132 @@ export default function GitLabIntegration() {
       setFileContent("Failed to load file content");
     } finally {
       setIsLoadingFile(false);
+    }
+  };
+
+  const loadExistingScanResults = async (imageNames: string[]) => {
+    // Query backend for existing scan results for each image
+    const results = new Map(scanResults);
+
+    for (const imageName of imageNames) {
+      try {
+        // Check if we have a cached scan result - use v1 dashboard API
+        const response = await fetch(
+          `http://localhost:8080/api/v1/dashboard/image/vulnerabilities?image=${encodeURIComponent(imageName)}`,
+          { method: 'GET' }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          // Extract the latest tag's vulnerability data
+          if (data.tags && data.tags.length > 0) {
+            const latestTag = data.tags[0]; // Get the first tag (most recent)
+
+            // Transform to match the scan result format expected by the UI
+            const scanResult = {
+              image_name: imageName,
+              summary: {
+                total: latestTag.vulnerabilities.total,
+                critical: latestTag.vulnerabilities.critical,
+                high: latestTag.vulnerabilities.high,
+                medium: latestTag.vulnerabilities.medium,
+                low: latestTag.vulnerabilities.low,
+                informational: latestTag.vulnerabilities.informational,
+              },
+              scan_time: latestTag.last_scan,
+              cache_hit: latestTag.cache_hit,
+            };
+
+            results.set(imageName, scanResult);
+          }
+        }
+      } catch (error) {
+        // Silently fail - image might not have been scanned yet
+        console.debug(`No existing scan result for ${imageName}`);
+      }
+    }
+
+    setScanResults(results);
+  };
+
+  const scanImage = async (imageName: string) => {
+    setScanningImages(prev => new Set(prev).add(imageName));
+
+    try {
+      const startResponse = await fetch("http://localhost:8080/api/v2/security/image/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image_name: imageName, force_rescan: false }),
+      });
+
+      if (startResponse.status !== 202) {
+        const errorData = await startResponse.json();
+        throw new Error(errorData.error || "Failed to start scan");
+      }
+
+      const { job_id } = await startResponse.json();
+
+      // Poll for results
+      const pollInterval = setInterval(async () => {
+        try {
+          const statusResponse = await fetch(
+            `http://localhost:8080/api/v2/security/image/status/${job_id}`
+          );
+
+          if (statusResponse.status !== 200) return;
+
+          const jobStatus = await statusResponse.json();
+
+          if (jobStatus.status === "completed" && jobStatus.result) {
+            clearInterval(pollInterval);
+            setScanResults(prev => new Map(prev).set(imageName, jobStatus.result));
+            setScanningImages(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(imageName);
+              return newSet;
+            });
+            toast({
+              title: "Scan Complete",
+              description: `${imageName} scanned successfully`,
+            });
+          } else if (jobStatus.status === "failed") {
+            clearInterval(pollInterval);
+            setScanningImages(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(imageName);
+              return newSet;
+            });
+            toast({
+              title: "Scan Failed",
+              description: jobStatus.error || "Unknown error",
+              variant: "destructive",
+            });
+          }
+        } catch (error) {
+          console.error("Error polling scan status:", error);
+        }
+      }, 2000);
+
+      // Timeout after 10 minutes
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        setScanningImages(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(imageName);
+          return newSet;
+        });
+      }, 600000);
+    } catch (error: any) {
+      setScanningImages(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(imageName);
+        return newSet;
+      });
+      toast({
+        title: "Failed to start scan",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -690,32 +902,155 @@ export default function GitLabIntegration() {
                   </div>
 
                   {/* File Content Viewer */}
-                  <div className="border border-ui-04 rounded">
-                    <div className="bg-layer-01 border-b border-ui-04 px-4 py-2">
-                      <div className="flex items-center gap-2">
-                        <Code className="h-4 w-4 text-text-02" />
-                        <span className="carbon-type-body-01 font-mono text-text-01 truncate">
-                          {selectedFile || "No file selected"}
-                        </span>
+                  <div className="space-y-4">
+                    {/* Extracted Images Section */}
+                    {extractedImages.length > 0 && (
+                      <div className="border border-ui-04 rounded">
+                        <div className="bg-layer-01 border-b border-ui-04 px-4 py-2">
+                          <div className="flex items-center gap-2">
+                            <Container className="h-4 w-4 text-text-02" />
+                            <span className="carbon-type-body-01 font-medium text-text-01">
+                              Docker Images ({extractedImages.length})
+                            </span>
+                          </div>
+                        </div>
+                        <div className="p-4 space-y-3 max-h-[300px] overflow-y-auto">
+                          {extractedImages.map((img, idx) => {
+                            const isScanning = scanningImages.has(img.image);
+                            const scanResult = scanResults.get(img.image);
+
+                            const getCategoryColor = (usage: string) => {
+                              switch (usage) {
+                                case 'base':
+                                  return 'text-violet-600 bg-violet-50 border-violet-200';
+                                case 'builder':
+                                  return 'text-blue-600 bg-blue-50 border-blue-200';
+                                case 'final':
+                                  return 'text-green-600 bg-green-50 border-green-200';
+                                case 'external-copy':
+                                  return 'text-orange-600 bg-orange-50 border-orange-200';
+                                default:
+                                  return 'text-gray-600 bg-gray-50 border-gray-200';
+                              }
+                            };
+
+                            const getCategoryLabel = (usage: string) => {
+                              switch (usage) {
+                                case 'base':
+                                  return 'Base Image';
+                                case 'builder':
+                                  return 'Builder Stage';
+                                case 'final':
+                                  return 'Final Image';
+                                case 'external-copy':
+                                  return 'External Copy';
+                                default:
+                                  return usage;
+                              }
+                            };
+
+                            return (
+                              <div key={idx} className="border border-ui-04 rounded-lg p-3 bg-layer-01 hover:bg-ui-01 transition-colors">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <Container className="h-4 w-4 text-violet-600 flex-shrink-0" />
+                                      <span className="font-mono text-sm font-medium text-text-01 truncate">
+                                        {img.image}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="text-xs text-text-03">Category:</span>
+                                      <Badge
+                                        variant="outline"
+                                        className={`text-xs font-medium ${getCategoryColor(img.usage)}`}
+                                      >
+                                        {getCategoryLabel(img.usage)}
+                                      </Badge>
+                                      {img.stage && (
+                                        <>
+                                          <span className="text-xs text-text-03">Stage:</span>
+                                          <Badge variant="outline" className="text-xs font-mono">
+                                            {img.stage}
+                                          </Badge>
+                                        </>
+                                      )}
+                                    </div>
+                                    {scanResult && (
+                                      <div className="flex items-center gap-2 mt-2">
+                                        <Badge className="bg-red-600 text-white text-xs">
+                                          Critical: {scanResult.summary.critical}
+                                        </Badge>
+                                        <Badge className="bg-orange-500 text-white text-xs">
+                                          High: {scanResult.summary.high}
+                                        </Badge>
+                                        <Badge className="bg-yellow-500 text-white text-xs">
+                                          Medium: {scanResult.summary.medium}
+                                        </Badge>
+                                        <Badge className="bg-blue-500 text-white text-xs">
+                                          Low: {scanResult.summary.low}
+                                        </Badge>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                    {scanResult ? (
+                                      <div className="flex items-center gap-1 text-green-600">
+                                        <CheckCircle className="h-4 w-4" />
+                                        <span className="text-xs font-medium">Scanned</span>
+                                      </div>
+                                    ) : isScanning ? (
+                                      <div className="flex items-center gap-1 text-violet-600">
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <span className="text-xs font-medium">Scanning...</span>
+                                      </div>
+                                    ) : (
+                                      <Button
+                                        size="sm"
+                                        onClick={() => scanImage(img.image)}
+                                        className="bg-violet-600 hover:bg-violet-700 text-white"
+                                      >
+                                        <Shield className="h-3 w-3 mr-1" />
+                                        Scan
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                    <div className="p-4 bg-field-01 max-h-[600px] overflow-auto">
-                      {!selectedFile ? (
-                        <div className="text-center py-12 text-text-03">
-                          <File className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                          <p className="carbon-type-body-02">
-                            Select a file to view its content
-                          </p>
+                    )}
+
+                    {/* File Content */}
+                    <div className="border border-ui-04 rounded">
+                      <div className="bg-layer-01 border-b border-ui-04 px-4 py-2">
+                        <div className="flex items-center gap-2">
+                          <Code className="h-4 w-4 text-text-02" />
+                          <span className="carbon-type-body-01 font-mono text-text-01 truncate">
+                            {selectedFile || "No file selected"}
+                          </span>
                         </div>
-                      ) : isLoadingFile ? (
-                        <div className="flex items-center justify-center py-8">
-                          <Loader2 className="h-6 w-6 animate-spin text-text-03" />
-                        </div>
-                      ) : (
-                        <pre className="carbon-type-code-01 text-text-01 text-xs">
-                          <code>{fileContent}</code>
-                        </pre>
-                      )}
+                      </div>
+                      <div className="p-4 bg-field-01 max-h-[600px] overflow-auto">
+                        {!selectedFile ? (
+                          <div className="text-center py-12 text-text-03">
+                            <File className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <p className="carbon-type-body-02">
+                              Select a file to view its content
+                            </p>
+                          </div>
+                        ) : isLoadingFile ? (
+                          <div className="flex items-center justify-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin text-text-03" />
+                          </div>
+                        ) : (
+                          <pre className="carbon-type-code-01 text-text-01 text-xs">
+                            <code>{fileContent}</code>
+                          </pre>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
