@@ -12,6 +12,7 @@ import {
   ChevronDown,
   Layers,
   GitBranch,
+  History,
 } from "lucide-react";
 import { Cloud } from "@carbon/icons-react";
 import { Link, useLocation } from "react-router-dom";
@@ -42,6 +43,7 @@ const navigation: Array<any> = [
       { name: "Dockerfile Scanner", href: "/docker/scan", icon: Search },
       { name: "Cluster Images Scanning", href: "/scanning", icon: Radar },
       { name: "Image Scanning", href: "/image-scanning", icon: Package },
+      { name: "Scan History", href: "/scan-history", icon: History },
     ],
   },
   {
@@ -79,7 +81,9 @@ const navigation: Array<any> = [
     name: "Integrations",
     icon: GitBranch,
     children: [
+      { name: "Artifactory", href: "/integrations/artifactory", icon: Package },
       { name: "GitLab", href: "/integrations/gitlab", icon: GitBranch },
+      { name: "GitLab CI/CD", href: "/integrations/gitlab/ci", icon: Activity },
       { name: "Security Jobs", href: "/security/jobs", icon: GitBranch },
     ],
   },

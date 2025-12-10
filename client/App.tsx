@@ -26,6 +26,10 @@ import Settings from "./pages/Settings";
 import HardenedImagesRegistry from "./pages/HardenedImagesRegistry";
 import GitLabIntegration from "./pages/GitLabIntegration";
 import SecurityJobs from "./pages/SecurityJobs";
+import GitLabCIPipeline from "./pages/GitLabCIPipeline";
+import GitLabCIPipelineTest from "./pages/GitLabCIPipeline";
+import ArtifactoryBrowser from "./pages/ArtifactoryBrowser";
+import ScanHistory from "./pages/ScanHistory";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +55,7 @@ const App = () => (
             <Route path="/kubernetes/manifest-scan" element={<ManifestScanner />} />
             <Route path="/scanning" element={<Scanning />} />
             <Route path="/image-scanning" element={<ImageScanning />} />
+            <Route path="/scan-history" element={<ScanHistory />} />
             <Route path="/vulnerabilities" element={<Vulnerabilities />} />
             <Route path="/dashboard" element={<VulnerabilityDashboard />} />
             <Route path="/dashboard/image/*" element={<ImageDashboard />} />
@@ -66,7 +71,10 @@ const App = () => (
               }
             />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/integrations/artifactory" element={<ArtifactoryBrowser />} />
             <Route path="/integrations/gitlab" element={<GitLabIntegration />} />
+            <Route path="/integrations/gitlab/ci/test" element={<GitLabCIPipelineTest />} />
+            <Route path="/integrations/gitlab/ci" element={<GitLabCIPipeline />} />
             <Route path="/security/jobs" element={<SecurityJobs />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

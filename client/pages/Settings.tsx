@@ -47,9 +47,13 @@ export default function Settings() {
   const [onlyHighCriticalDefault, setOnlyHighCriticalDefault] =
     useState<boolean>(initial.onlyHighCriticalDefault ?? false);
 
-  // Artifactory state
-  const [artifactoryUrl, setArtifactoryUrl] = useState("");
-  const [artifactoryUsername, setArtifactoryUsername] = useState("");
+  // Artifactory state - Load from localStorage
+  const [artifactoryUrl, setArtifactoryUrl] = useState(() => {
+    return localStorage.getItem("artifactory_url") || "artifactory.digikala.com";
+  });
+  const [artifactoryUsername, setArtifactoryUsername] = useState(() => {
+    return localStorage.getItem("artifactory_username") || "";
+  });
   const [artifactoryToken, setArtifactoryToken] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isCheckingConnectivity, setIsCheckingConnectivity] = useState(false);
@@ -116,6 +120,11 @@ export default function Settings() {
         token: artifactoryToken,
         url: artifactoryUrl || undefined,
       });
+
+      // Store credentials in localStorage for API requests
+      localStorage.setItem('artifactory_token', artifactoryToken);
+      localStorage.setItem('artifactory_url', artifactoryUrl || 'artifactory.digikala.com');
+      localStorage.setItem('artifactory_username', artifactoryUsername);
 
       toast({
         title: "Login successful",
@@ -187,6 +196,11 @@ export default function Settings() {
     setIsLoggingOut(true);
     try {
       const result = await artifactoryApi.logout(artifactoryUrl);
+
+      // Clear localStorage
+      localStorage.removeItem("artifactory_token");
+      localStorage.removeItem("artifactory_url");
+      localStorage.removeItem("artifactory_username");
 
       toast({
         title: "Logout successful",
