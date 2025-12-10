@@ -84,6 +84,7 @@ const navigation: Array<any> = [
       { name: "Artifactory", href: "/integrations/artifactory", icon: Package },
       { name: "GitLab", href: "/integrations/gitlab", icon: GitBranch },
       { name: "GitLab CI/CD", href: "/integrations/gitlab/ci", icon: Activity },
+      { name: "CI Scan Dashboard", href: "/integrations/ci", icon: Radar },
       { name: "Security Jobs", href: "/security/jobs", icon: GitBranch },
     ],
   },

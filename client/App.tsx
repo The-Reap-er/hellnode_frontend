@@ -30,6 +30,7 @@ import GitLabCIPipeline from "./pages/GitLabCIPipeline";
 import GitLabCIPipelineTest from "./pages/GitLabCIPipeline";
 import ArtifactoryBrowser from "./pages/ArtifactoryBrowser";
 import ScanHistory from "./pages/ScanHistory";
+import CiScanDashboardPage from "./pages/ci";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +76,7 @@ const App = () => (
             <Route path="/integrations/gitlab" element={<GitLabIntegration />} />
             <Route path="/integrations/gitlab/ci/test" element={<GitLabCIPipelineTest />} />
             <Route path="/integrations/gitlab/ci" element={<GitLabCIPipeline />} />
+            <Route path="/integrations/ci" element={<CiScanDashboardPage />} />
             <Route path="/security/jobs" element={<SecurityJobs />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
