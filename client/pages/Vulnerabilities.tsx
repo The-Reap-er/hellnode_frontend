@@ -36,7 +36,6 @@ import {
   ExternalLink,
   X,
   Calendar,
-  Info,
   Send,
   FileDown,
 } from "lucide-react";
@@ -925,7 +924,7 @@ export default function Vulnerabilities() {
                 {/* Description */}
                 <div className="space-y-4">
                   <h4 className="carbon-type-productive-heading-02 text-text-01 flex items-center space-x-2">
-                    <Info className="h-4 w-4" />
+                    <AlertCircle className="h-4 w-4" />
                     <span>Description</span>
                   </h4>
                   <div className="bg-layer-02 border border-ui-03 rounded p-4">
